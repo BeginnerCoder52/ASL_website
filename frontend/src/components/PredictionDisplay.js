@@ -1,16 +1,22 @@
 import React from 'react';
 
-const PredictionDisplay = ({ predictions }) => {
+const PredictionDisplay = ({ prediction }) => {
+  if (!prediction) return null;
+
   return (
-    <div className="bg-gray-100 p-4 rounded">
-      <h2 className="text-xl font-semibold mb-2">Predictions</h2>
-      <ul>
-        {predictions.map((pred, idx) => (
-          <li key={idx} className="mb-1">
-            {pred.prediction} - {new Date(pred.timestamp).toLocaleString()}
-          </li>
-        ))}
-      </ul>
+    <div>
+      <h3>Caption: {prediction.caption}</h3>
+      <div>
+        {prediction.aslImages &&
+          prediction.aslImages.map((img, idx) => (
+            <img
+              key={idx}
+              src={`/static/dataset/${img}`}
+              alt={`ASL ${idx}`}
+              style={{ width: '64px', height: '64px', margin: '5px' }}
+            />
+          ))}
+      </div>
     </div>
   );
 };
