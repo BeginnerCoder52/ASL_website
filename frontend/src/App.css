@@ -2,6 +2,185 @@
 @tailwind components;
 @tailwind utilities;
 
+.main-header {
+  width: 100%;
+  padding: 20px 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.8); /* Màu nền tối trong suốt */
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(59, 130, 246, 0.3);
+  position: fixed; /* Cố định trên cùng */
+  top: 0;
+  left: 0;
+  z-index: 1000;
+}
+
+.logo-text {
+  font-size: 2.5rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
+
+.logo-text .highlight {
+  color: #3b82f6; /* Màu xanh dương thương hiệu */
+  text-shadow: 0 0 20px rgba(59, 130, 246, 0.8);
+}
+
 body {
-  background-color: #f0f0f0;
+  margin: 0;
+  font-family: "Inter", system-ui, sans-serif;
+  background-color: #0b0c15; /* Nền tối hẳn */
+  color: #fff;
+  overflow-x: hidden;
+}
+
+.App {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* --- Camera Area --- */
+.camera-container {
+  margin-top: 140px !important; /* Chừa chỗ cho Teacher Note */
+  position: relative;
+  z-index: 10;
+}
+
+/* --- Teacher Note (Top Left) --- */
+.teacher-note {
+  position: fixed;
+  top: 100px !important;
+  left: 24px;
+  background: rgba(30, 41, 59, 0.9);
+  padding: 12px 20px;
+  border-radius: 8px;
+  border-left: 4px solid #ef4444; /* Đỏ */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+  font-size: 1.1rem;
+  max-width: 300px;
+}
+
+/* --- Prediction Panel (Bottom Left) --- */
+.prediction-panel {
+  position: fixed;
+  left: 24px;
+  bottom: 24px;
+  width: 240px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 50;
+}
+
+.target-box {
+  background: #0f172a;
+  width: 100%;
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 12px;
+  border: 2px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.target-label {
+  font-size: 4rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+}
+
+.status-text {
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  margin-top: 8px;
+  letter-spacing: 0.05em;
+}
+
+.predicted {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.example-img {
+  width: 100px;
+  height: 100px;
+  object-fit: contain;
+  margin-top: 10px;
+  border-radius: 8px;
+  background: #fff; /* Nền trắng để ảnh ASL dễ nhìn */
+  padding: 4px;
+}
+
+.next-btn {
+  width: 100%;
+  padding: 12px;
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.next-btn:hover {
+  background: #2563eb;
+}
+
+/* --- Subtitle Overlay (Center of Screen/Camera) --- */
+.subtitle-overlay {
+  position: fixed;
+  bottom: 100px; /* Cách đáy 1 đoạn */
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.8);
+  color: #fbbf24; /* Vàng cam */
+  padding: 12px 32px;
+  border-radius: 50px;
+  font-size: 2rem;
+  font-weight: 700;
+  border: 2px solid #fbbf24;
+  z-index: 100;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  min-width: 200px;
+  text-align: center;
+}
+
+/* --- Clear Subtitle Button (Bottom Right) --- */
+.clear-subtitle-btn {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  padding: 12px 24px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+  z-index: 50;
+  transition: transform 0.2s;
+}
+.clear-subtitle-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
 }
