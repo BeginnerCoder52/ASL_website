@@ -10,7 +10,7 @@ export default function PredictionDisplay({
 }) {
   return (
     <div className="prediction-panel">
-      {/* 1. Khu vực hiển thị từ vựng (Challenge) */}
+      {/* 1. Hiển thị các ô chữ cái */}
       <div
         className="phrase-container"
         style={{
@@ -22,13 +22,11 @@ export default function PredictionDisplay({
         }}
       >
         {targetPhrase.split("").map((char, index) => {
-          // Xác định trạng thái của từng chữ cái
-          let statusClass = "char-pending"; // Chưa đoán
-          if (index < currentIndex) statusClass = "char-done"; // Đã xong
+          let statusClass = "char-pending";
+          if (index < currentIndex) statusClass = "char-done";
           if (index === currentIndex && !isCompleted)
-            statusClass = "char-current"; // Đang đoán (Cursor)
+            statusClass = "char-current";
 
-          // Hiển thị đặc biệt cho dấu cách
           const displayChar = char === " " ? "␣" : char;
 
           return (
@@ -39,7 +37,7 @@ export default function PredictionDisplay({
         })}
       </div>
 
-      {/* 2. Trạng thái và Hướng dẫn */}
+      {/* 2. Khu vực trạng thái & Ảnh hướng dẫn */}
       <div className="status-box">
         {isCompleted ? (
           <div
@@ -52,38 +50,42 @@ export default function PredictionDisplay({
             style={{
               display: "flex",
               alignItems: "center",
-              gap: "20px",
+              gap: "30px",
               justifyContent: "center",
             }}
           >
-            {/* Ảnh hướng dẫn mẫu */}
-            <div className="example-guide">
-              <span
-                style={{
-                  display: "block",
-                  fontSize: "12px",
-                  color: "#888",
-                  marginBottom: "5px",
-                }}
+            {/* ẢNH HƯỚNG DẪN TỪ DATASET */}
+            <div className="example-guide" style={{ textAlign: "center" }}>
+              <div
+                style={{ fontSize: "14px", color: "#aaa", marginBottom: "5px" }}
               >
-                Guide:
-              </span>
+                Example:
+              </div>
               {exampleUrl ? (
                 <img
                   src={exampleUrl}
-                  alt="Guide"
+                  alt="Hand Sign Guide"
                   style={{
-                    height: "100px",
+                    height: "140px", // Tăng kích thước ảnh để nhìn rõ hơn
+                    width: "auto",
                     borderRadius: "8px",
-                    border: "1px solid #444",
+                    border: "2px solid #555",
+                    objectFit: "contain",
+                    backgroundColor: "#fff", // Nền trắng để ảnh trong suốt dễ nhìn
                   }}
                 />
               ) : (
                 <div
                   style={{
-                    height: "100px",
-                    width: "100px",
+                    height: "140px",
+                    width: "140px",
                     background: "#222",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "8px",
+                    border: "1px dashed #555",
+                    color: "#666",
                   }}
                 >
                   No Image
@@ -94,18 +96,21 @@ export default function PredictionDisplay({
             {/* Thông tin Text */}
             <div className="info-text" style={{ textAlign: "left" }}>
               <div>
-                Current Goal:{" "}
-                <b style={{ fontSize: "20px", color: "yellow" }}>
+                Target:{" "}
+                <b style={{ fontSize: "24px", color: "yellow" }}>
                   {targetPhrase[currentIndex] === " "
-                    ? "SPACE (Dấu cách)"
+                    ? "SPACE"
                     : targetPhrase[currentIndex]}
                 </b>
               </div>
-              <div>
-                AI Sees: <b>{currentPrediction}</b>
+              <div style={{ marginTop: "10px" }}>
+                AI Detected:{" "}
+                <b style={{ fontSize: "24px", color: "#fff" }}>
+                  {currentPrediction}
+                </b>
               </div>
               <div
-                style={{ fontSize: "12px", color: "#aaa", marginTop: "5px" }}
+                style={{ fontSize: "12px", color: "#aaa", marginTop: "10px" }}
               >
                 Hold for 2 seconds to confirm!
               </div>
@@ -122,7 +127,7 @@ export default function PredictionDisplay({
         Skip Word
       </button>
 
-      {/* CSS Styles nhúng trực tiếp hoặc bạn copy vào App.css */}
+      {/* CSS Styles */}
       <style>{`
         .char-box {
           width: 50px;
@@ -139,12 +144,12 @@ export default function PredictionDisplay({
           transition: all 0.3s;
         }
         .char-done {
-          background-color: #008800; /* Xanh lá */
+          background-color: #008800;
           border-color: #00ff00;
         }
         .char-current {
           background-color: #333;
-          border-color: #ffff00; /* Vàng */
+          border-color: #ffff00;
           box-shadow: 0 0 15px rgba(255, 255, 0, 0.5);
           animation: pulse 1s infinite;
         }

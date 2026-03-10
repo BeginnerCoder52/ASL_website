@@ -184,3 +184,34 @@ body {
   background: #b91c1c;
   transform: translateY(-2px);
 }
+
+/* App.css */
+.tool-btn {
+  padding: 10px 20px;
+  border: 2px solid #00ffea;
+  background-color: transparent;
+  color: #00ffea;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  transition: all 0.3s;
+}
+
+.tool-btn:hover {
+  background-color: rgba(0, 255, 234, 0.1);
+  box-shadow: 0 0 10px #00ffea;
+}
+
+.tool-btn.active {
+  background-color: #00ffea;
+  color: #000;
+}
+
+.loading-text {
+  color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 20px;
+}

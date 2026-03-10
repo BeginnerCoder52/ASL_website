@@ -82,4 +82,19 @@ export default function CameraFeed({ onResult }) {
       )}
     </div>
   );
+
+  return (
+    <div className="camera-feed-wrapper">
+      {/* Thêm style display: none để ẩn camera gốc nhưng vẫn hoạt động ngầm */}
+      <Webcam
+        ref={webcamRef}
+        audio={false}
+        mirrored={true}
+        screenshotFormat="image/jpeg"
+        videoConstraints={{ width: 640, height: 480, facingMode: "user" }}
+        onUserMedia={() => setCameraReady(true)}
+        style={{ display: "none" }}
+      />
+    </div>
+  );
 }
