@@ -1,0 +1,8 @@
+Mình muốn nâng cấp thêm các bước này, bạn hãy giúp mình dùng api code thật hợp lý để triển khai nhanh.
+
+- Biến thành phiên bản Google Meet: Giáo viên sẽ vào Menu, tạo mã phòng (thiết lặp room riêng), rồi từ đó mới vào ASL class; Cả giáo viên và học sinh cần đăng ký tài khoản bao gồm Họ tên, ngày sinh (dựa vào đây để xác định loại Giáo viên/Học sinh) (hiện dùng chuẩn gmail, chưa có integrate như đăng nhập Google...); Học sinh sẽ nhập mã phòng mà giáo viên tạo để vào meeting lớp học.
+
+- Whiteboard không cần bao phủ hết màn hình, có chức năng collaborative: Học hỏi theo Addon Google Collaborative Whiteboard, khi Giáo viên mở Whiteboard, học sinh có thể vào; giáo viên có thể giám sát con chuột của các học sinh như các cursor đặt theo tên các user. Whiteboard sẽ autosave mỗi lần có thay đổi trong meeting, và có nút lưu về dạng .png. Ngoài ra, giúp mình thêm nút Tạo Sticky notes: giúp học sinh có 2 lựa chọn (2 nút tùy chọn trong notes): ghi bằng bàn phím; hoặc tiếp tục nhận diện ngôn ngữ ASL chuyển thành văn bản trong notes đó.
+
+
+- Camera: hiện đang có 2 camera: 1 gốc, và 1 của AI xử lý. Mình chỉ muốn có 1 camera duy nhất, và sẽ có nút Bật/Tắt ASL (mặc định mở) để biến camera gốc thành camera sau khi AI xử lý, đồng thời phần Subtitle đặt ở torng camera mà phía dưới (không phải ra rìa hoàn toàn). Ngoài ra, khi có các học viên vào, mỗi học viên sẽ là mỗi camera trong màn hình chính của giáo viên (như Google Meet). Ngoài ra cả giáo viên và học sinh sẽ có giao diện giống nhau, mỗi  subtitle lúc này sẽ hiển thị ở dưới camera của từng người (nếu là giáo viên nhìn xuống học sinh thì subtitle kích cỡ nhỏ hơn chút)
