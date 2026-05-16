@@ -34,7 +34,7 @@ export default function CameraFeed({ onResult }) {
     const imageBase64 = tempCanvas.toDataURL("image/jpeg", 0.7); // Nén chất lượng 0.7 cho nhẹ
 
     // Gửi API
-    fetch("http://localhost:5000/api/predict", {
+    fetch(`${process.env.REACT_APP_BACKEND_URL}/api/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: imageBase64 }),

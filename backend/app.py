@@ -10,8 +10,14 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+# THÊM IMPORT NÀY
+from flask_socketio import SocketIO, join_room, leave_room, emit
+
 app = Flask(__name__)
 CORS(app)
+
+# THÊM DÒNG NÀY ĐỂ KHỞI TẠO SOCKET
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 # --- 1. CẤU HÌNH ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -185,5 +191,81 @@ def get_example(label):
     
     return jsonify({'error': 'Image not found'}), 404
 
+room_whiteboards = {}
+
+# --- TÍNH NĂNG SOCKET.IO (MEETING ROOM) ---
+# Sửa lại hàm này trong app.py
+@socketio.on('join_room')
+def on_join(data):
+    room = data['room']
+    username = data['username']
+    peerId = data.get('peerId') # Lấy Peer ID của người mới vào
+    
+    join_room(room)
+    # include_self=False để chỉ báo cho người CŨ trong phòng biết có người MỚI
+    emit('user_joined', {
+        'username': username, 
+        'peerId': peerId, 
+        'message': f'{username} đã tham gia lớp.'
+    }, room=room, include_self=False)
+    
+@socketio.on('leave_room')
+def on_leave(data):
+    room = data['room']
+    username = data['username']
+    peerId = data.get('peerId') # Lấy ID để báo cho frontend xóa camera
+    leave_room(room)
+    
+    # Phát thông báo cho những người còn lại trong phòng
+    emit('user_left', {
+        'username': username, 
+        'peerId': peerId, 
+        'message': f'{username} đã rời khỏi phòng họp.'
+    }, room=room, include_self=False)
+    
+# --- Chat & Meeting Control ---
+@socketio.on('chat_message')
+def handle_chat(data):
+    # Phát tin nhắn cho tất cả người trong phòng
+    emit('chat_message', data, room=data['room'])
+
+@socketio.on('end_meeting')
+def handle_end_meeting(data):
+    # Host yêu cầu kết thúc cuộc họp, gửi tín hiệu đuổi mọi người ra
+    emit('meeting_ended', {'message': 'Giáo viên đã kết thúc lớp học.'}, room=data['room'])
+
+# --- Xử lý Whiteboard ---
+@socketio.on('draw_line')
+def handle_draw(data):
+    emit('draw_line', data, room=data['room'], include_self=False)
+
+@socketio.on('save_whiteboard')
+def save_whiteboard(data):
+    # Lưu toàn bộ canvas dưới dạng base64 vào bộ nhớ server
+    room_whiteboards[data['room']] = data['image']
+
+@socketio.on('request_whiteboard')
+def request_whiteboard(data):
+    # Trả về bảng trắng cũ khi có người mới mở bảng
+    room = data['room']
+    if room in room_whiteboards:
+        emit('load_whiteboard', {'image': room_whiteboards[room]}, to=request.sid)
+
+# --- Tính năng Timer ---
+@socketio.on('start_timer')
+def handle_start_timer(data):
+    # Gửi mốc thời gian kết thúc (endTime) cho toàn bộ người trong phòng
+    emit('timer_started', data, room=data['room'])
+
+@socketio.on('stop_timer')
+def handle_stop_timer(data):
+    emit('timer_stopped', room=data['room'])
+
+# --- Đồng bộ Phụ đề (Subtitle) ---
+@socketio.on('subtitle_update')
+def handle_subtitle(data):
+    # Phát phụ đề của một người cho tất cả những người khác trong phòng
+    emit('subtitle_update', data, room=data['room'], include_self=False)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
