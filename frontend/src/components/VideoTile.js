@@ -152,15 +152,16 @@ export default function VideoTile({
       {isLocal ? (
         <>
           <Webcam
+            key={`cam-${isCamOn}-${deviceId}`} // Force remount khi toggle camera
             ref={videoRef}
-            audio={true} // <-- Bật thu âm
-            muted={true} // <-- Tắt loa máy mình để chống vọng âm (Echo)
-            onUserMedia={(s) => setMediaStream(s)} // <-- Lấy luồng gốc
+            audio={true}
+            muted={true}
+            onUserMedia={(s) => setMediaStream(s)}
             style={{ display: "none" }}
-            videoConstraints={{
+            videoConstraints={isCamOn ? {
               deviceId: deviceId ? { exact: deviceId } : undefined,
               facingMode: "user",
-            }}
+            } : false}
           />
           <canvas
             ref={canvasRef}
