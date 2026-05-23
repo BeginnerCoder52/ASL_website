@@ -35,11 +35,11 @@ out/
 Thumbs.db
 
 # Bỏ qua các file AI và Dataset
-*.keras
-*.task
-*.h5
-/data/
-/AI_output_files/
+# *.keras
+# *.task
+# *.h5
+# /data/
+# /AI_output_files/
 
 # Bỏ qua các thư mục nặng của hệ thống
 node_modules/
