@@ -16,6 +16,8 @@ export default function VideoTile({
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const [mediaStream, setMediaStream] = useState(null); // Lưu trữ luồng gốc có chứa Audio
+  const mediaStreamRef = useRef(null); // Track stream để cleanup khi unmount
+  const streamRef = useRef(stream); // Ổn định callback stream tránh re-render loop
 
   // Xử lý luồng của người khác
   useEffect(() => {
@@ -74,18 +76,41 @@ export default function VideoTile({
     return () => clearInterval(interval);
   }, [isLocal, isAslOn, isCamOn, onAslResult]);
 
+  // Ổn định callback stream để tránh re-run effect mỗi lần render
+  useEffect(() => {
+    streamRef.current = stream;
+  });
+
   // GHÉP HÌNH TỪ CANVAS VÀ TIẾNG TỪ MICRO
   useEffect(() => {
-    if (isLocal && stream && canvasRef.current && mediaStream) {
+    if (isLocal && streamRef.current && canvasRef.current && mediaStream) {
       const canvasStream = canvasRef.current.captureStream(30); // Chỉ có hình
       const audioTracks = mediaStream.getAudioTracks(); // Lấy tiếng
 
       if (audioTracks.length > 0) {
         canvasStream.addTrack(audioTracks[0]); // Ghép vào làm 1
       }
-      stream(canvasStream); // Đẩy cho PeerJS gửi đi
+      streamRef.current(canvasStream); // Đẩy cho PeerJS gửi đi
+
+      return () => {
+        canvasStream.getTracks().forEach((t) => t.stop());
+      };
     }
-  }, [isLocal, stream, mediaStream]);
+  }, [isLocal, mediaStream]);
+
+  // Track stream để cleanup khi unmount
+  useEffect(() => {
+    mediaStreamRef.current = mediaStream;
+  }, [mediaStream]);
+
+  // Dọn dẹp mediaStream khi component unmount
+  useEffect(() => {
+    return () => {
+      if (mediaStreamRef.current) {
+        mediaStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
+    };
+  }, []);
 
   // ĐỒNG BỘ NÚT TẮT/MỞ MIC VỚI ĐƯỜNG TRUYỀN
   useEffect(() => {

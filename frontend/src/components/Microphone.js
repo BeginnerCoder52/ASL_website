@@ -5,12 +5,19 @@ import SpeechRecognition, {
 
 export default function Microphone({ onSpeechResult, onMicToggle }) {
   const [isMicOn, setIsMicOn] = useState(false);
-  const { transcript, browserSupportsSpeechRecognition } =
+  const { transcript, browserSupportsSpeechRecognition, listening } =
     useSpeechRecognition();
 
   useEffect(() => {
     if (transcript) onSpeechResult(transcript);
   }, [transcript, onSpeechResult]);
+
+  // Dừng speech recognition khi component unmount
+  useEffect(() => {
+    return () => {
+      if (listening) SpeechRecognition.stopListening();
+    };
+  }, [listening]);
 
   const toggleMic = () => {
     if (isMicOn) {
