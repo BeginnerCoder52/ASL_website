@@ -23,4 +23,4 @@ COPY . .
 EXPOSE 10000
 
 # Chạy Gunicorn với Gevent WebSockets
-CMD gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:${PORT:-10000} backend.app:app
+CMD gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:${PORT:-10000} backend.app:socketio

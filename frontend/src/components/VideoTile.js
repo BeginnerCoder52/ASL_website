@@ -33,6 +33,7 @@ export default function VideoTile({
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
+    let errorCount = 0;
     let interval = setInterval(() => {
       if (video.readyState !== 4) return;
       const ctx = canvas.getContext("2d");
@@ -47,6 +48,12 @@ export default function VideoTile({
         return;
       }
 
+      if (errorCount > 20) return; // Dừng hẳn nếu server lỗi liên tục
+      if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "undefined") {
+        if (errorCount === 0) console.warn("⚠️ REACT_APP_BACKEND_URL chưa được cấu hình! Vào Vercel Dashboard → Environment Variables để thêm.");
+        errorCount++; return;
+      }
+
       const tempCanvas = document.createElement("canvas");
       tempCanvas.width = video.videoWidth;
       tempCanvas.height = video.videoHeight;
@@ -59,8 +66,13 @@ export default function VideoTile({
           image: tempCanvas.toDataURL("image/jpeg", 0.6),
         }),
       })
-        .then((res) => res.json())
+        .then((res) => {
+          if (!res.ok) { errorCount++; return null; }
+          errorCount = 0;
+          return res.json();
+        })
         .then((data) => {
+          if (!data) return;
           if (data.processed_image) {
             const img = new Image();
             img.onload = () =>
@@ -70,7 +82,7 @@ export default function VideoTile({
           if (data.label && onAslResult)
             onAslResult(data.label, data.confidence);
         })
-        .catch((e) => console.error(e));
+        .catch(() => errorCount++);
     }, 300);
 
     return () => clearInterval(interval);
