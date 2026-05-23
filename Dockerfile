@@ -3,9 +3,10 @@ FROM python:3.10-slim
 
 # Cài đặt các thư viện hệ thống cần thiết cho MediaPipe và OpenCV
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
-    libgles2-mesa \
+    libgl1 \
+    libgles2 \
     libglib2.0-0 \
+    libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
 # Thiết lập thư mục làm việc
