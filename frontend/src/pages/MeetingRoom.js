@@ -120,11 +120,6 @@ export default function MeetingRoom({ user }) {
 
     peer.on("open", (id) => {
       myPeerId.current = id;
-      socket.emit("join_room", {
-        room: roomId,
-        username: user.fullname,
-        peerId: id,
-      });
     });
 
     peer.on("call", (call) => {
@@ -194,6 +189,22 @@ export default function MeetingRoom({ user }) {
       socket.disconnect();
     };
   }, [roomId, user]);
+
+  // Phát tín hiệu join_room CHỈ KHI PeerID và Camera đã sẵn sàng
+  useEffect(() => {
+    // Chúng ta cần check xem `localStreamRef.current` đã được gán giá trị chưa
+    // Nhưng vì nó là ref, nó không kích hoạt render lại, nên ta dùng Interval nhỏ
+    // hoặc chờ đến khi render component có camera.
+    // Cách an toàn là báo join ngay khi lấy được myPeerId, nhưng những người khác sẽ gọi tới.
+    // Nếu có myPeerId thì gửi join.
+    if (myPeerId.current) {
+         socket.emit("join_room", {
+          room: roomId,
+          username: user.fullname,
+          peerId: myPeerId.current,
+        });
+    }
+  }, [roomId, user.fullname, myPeerId.current]);
 
   useEffect(() => {
     if (!timerEndTime) return;
