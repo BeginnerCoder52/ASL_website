@@ -20,6 +20,9 @@ const Subtitle = ({ isListening, language = "en-US" }) => {
     } else {
       SpeechRecognition.stopListening();
     }
+    return () => {
+      SpeechRecognition.stopListening();
+    };
   }, [isListening, language]);
 
   // Xử lý khi trình duyệt không hỗ trợ Web Speech API (như Firefox/Safari bản cũ)

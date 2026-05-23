@@ -62,12 +62,13 @@ export default function MeetingRoom({ user }) {
   const myPeerId = useRef("");
   const holdStartRef = useRef(null);
   const lastLabelRef = useRef("");
+  const newGameTimeoutRef = useRef(null); // Dùng để clear setTimeout khi unmount
 
   // Quét thiết bị Camera
   useEffect(() => {
     const getCameras = async () => {
       try {
-        await navigator.mediaDevices.getUserMedia({ video: true });
+        const tempStream = await navigator.mediaDevices.getUserMedia({ video: true });
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(
           (device) => device.kind === "videoinput",
@@ -76,6 +77,7 @@ export default function MeetingRoom({ user }) {
         if (videoDevices.length > 0) {
           setSelectedCamera(videoDevices[0].deviceId);
         }
+        tempStream.getTracks().forEach((t) => t.stop()); // Dừng stream ngay sau khi enumerate
       } catch (err) {
         console.error("Lỗi khi tìm thiết bị Camera: ", err);
       }
@@ -96,6 +98,7 @@ export default function MeetingRoom({ user }) {
       gainNode.connect(ctx.destination);
       osc.start();
       osc.stop(ctx.currentTime + 2);
+      osc.onended = () => ctx.close();
     } catch (e) {
       console.error(e);
     }
@@ -112,6 +115,9 @@ export default function MeetingRoom({ user }) {
 
   useEffect(() => {
     startNewGame();
+    return () => {
+      if (newGameTimeoutRef.current) clearTimeout(newGameTimeoutRef.current);
+    };
   }, []);
 
   useEffect(() => {
@@ -186,7 +192,13 @@ export default function MeetingRoom({ user }) {
 
     return () => {
       peer.destroy();
-      socket.disconnect();
+      socket.off("user_joined");
+      socket.off("user_left");
+      socket.off("subtitle_update");
+      socket.off("chat_message");
+      socket.off("meeting_ended");
+      socket.off("timer_started");
+      socket.off("timer_stopped");
     };
   }, [roomId, user]);
 
@@ -270,7 +282,7 @@ export default function MeetingRoom({ user }) {
             setCurrentIndex((prev) => prev + 1);
           else {
             setIsCompleted(true);
-            setTimeout(() => {
+            newGameTimeoutRef.current = setTimeout(() => {
               startNewGame();
             }, 3000);
           }
@@ -310,12 +322,25 @@ export default function MeetingRoom({ user }) {
     setChatInput("");
   };
 
+  const stopAllMedia = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach((t) => t.stop());
+      localStreamRef.current = null;
+    }
+    if (peerInstance.current) {
+      peerInstance.current.destroy();
+      peerInstance.current = null;
+    }
+  };
+
   const handleLeaveOnly = () => {
+    stopAllMedia();
     socket.emit("leave_room", { room: roomId, username: user.fullname });
     navigate("/home");
   };
 
   const handleEndMeeting = () => {
+    stopAllMedia();
     socket.emit("end_meeting", { room: roomId });
     navigate("/home");
   };

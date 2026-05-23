@@ -51,6 +51,7 @@ export default function Whiteboard({ room, onClose }) {
     return () => {
       socket.off("load_whiteboard");
       socket.off("draw_line");
+      socket.emit("leave_room", { room, username: "User" });
     };
   }, [room]);
 
