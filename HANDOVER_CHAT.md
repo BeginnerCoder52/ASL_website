@@ -275,3 +275,146 @@ npm start            # Chạy frontend (port 3000)
 cd ~/ASL_website
 .venv/bin/python -m backend.app
 ```
+
+---
+
+## 10. CẬP NHẬT PHASE 3 (TIẾP) — Ngày 25/05/2026 — Debug nhận diện ASL sai + Fix model.json
+
+### 10.1. Vấn đề
+Client-side ASL predictions **sai hoàn toàn** (chỉ chữ P đôi lúc đúng). Mục tiêu: chẩn đoán nguyên nhân và sửa.
+
+### 10.2. Nguyên nhân gốc rễ
+
+#### 10.2.1. model.json bị lỗi format (Keras 3 → TF.js converter bug)
+Converter `tensorflowjs_converter v4.22.0` tạo ra model.json không tương thích:
+
+| Vấn đề | model.json cũ | Fix |
+|--------|--------------|-----|
+| **InputLayer shape** | `batch_shape: [null, 42]` | `batch_input_shape: [null, 42]` (Keras format chuẩn) |
+| **InputLayer `dtype`** | Object `{module, class_name, config, registered_name}` | Plain string `"float32"` |
+| **Thừa fields** | `ragged: false`, `optional: false` trong InputLayer | Xoá |
+| **LeakyReLU param** | `negative_slope: 0.1` (Keras 3 format) | `alpha: 0.1` (TF.js format) |
+| **Thừa build_input_shape** | `build_input_shape: [null, 42]` trong Sequential config | Xoá |
+
+**Hậu quả:** Vì `batch_shape` không được `convertPythonicToTs()` chuyển thành `batchInputShape`, InputLayer của TF.js không có input shape → model architecture bị hỏng → predict ra garbage (luôn chọn 1 class).
+
+#### 10.2.2. Server-side flip bug
+`backend/app.py` (và `model.py`) dùng `cv2.flip(img, 1)` **trước khi detect MediaPipe**:
+- Training data: `cv2.imread()` raw → **không flip** → right hand ở bên TRÁI ảnh
+- Server inference: raw image → `cv2.flip(img, 1)` → **mirror** → right hand ở bên PHẢI ảnh
+- Client inference: raw video → **không flip** → right hand ở bên TRÁI ảnh
+
+→ **Server predictions sai hệ thống** (handedness error). Client inference không bị lỗi này.
+
+#### 10.2.3. Kết luận chẩn đoán
+- Nguyên nhân **chính** client bị sai: model.json format lỗi (gây random predict, không phải do handedness)
+- Bug handedness chỉ ảnh hưởng server `/api/predict`, client ASL không dùng flip
+- **Cần test lại client-side predictions sau khi sửa model.json**
+
+### 10.3. Các file đã sửa
+
+| File | Thay đổi |
+|------|---------|
+| `frontend/public/tfjs_model/model.json` | **Format lại hoàn toàn**: batch_input_shape, alpha, xoá Keras 3 artifacts, dtype string |
+| `frontend/public/tfjs_model/group1-shard1of1.bin` | **Fresh weights** (781KB) từ Keras model gốc |
+
+### 10.4. Feature extraction verified (không cần sửa)
+
+Training notebook (`asl-image-processing-V20-BEST.ipynb`, cell 38):
+```python
+# Feature: 21 landmarks × (x, y) = 42 features
+data_aux = []
+for lm in hand_landmarks:
+    data_aux.append(lm.x)
+    data_aux.append(lm.y)
+```
+
+Client `aslEngine.js` (dòng 113-115):
+```js
+const features = [];
+for (const lm of landmarks) {
+    features.push(lm.x, lm.y);
+}
+```
+
+→ **Giống hệt nhau** (raw normalized [0,1] x,y, không normalize/center/scale thêm).
+
+### 10.5. So sánh server vs client pipeline
+
+| Stage | Server (backend) | Client (aslEngine.js) |
+|-------|-----------------|----------------------|
+| Image source | POST request | Webcam `getUserMedia()` |
+| Preprocessing | `cv2.flip(img, 1)` ❌ | Raw video ✅ |
+| MediaPipe | Python `vision.HandLandmarker` | WASM `HandLandmarker` |
+| Features | 42 x,y raw | 42 x,y raw |
+| Model | Keras `.keras` | TF.js `model.json` |
+| Output | 43-class softmax | 43-class softmax |
+
+### 10.6. Model architecture (confirmed)
+
+```
+Input: [null, 42]
+  ↓
+Dense(512) → LeakyReLU(α=0.1) → BatchNorm → Dropout(0.4)
+  ↓
+Dense(256) → LeakyReLU(α=0.1) → BatchNorm → Dropout(0.3)
+  ↓
+Dense(128) → LeakyReLU(α=0.1) → BatchNorm → Dropout(0.3)
+  ↓
+Dense(43, softmax)
+```
+
+Weights: 19 tensors, ~781KB, verified correct.
+
+### 10.7. Labels mapping (confirmed đúng)
+
+`labels.json` (frontend/public/) ↔ `new_data.pickle` (AI/) ↔ `FULL_CLASS_LABELS` (config.py) ↔ sorted LabelEncoder
+
+→ **43 classes, thứ tự giống hệt nhau** ✅
+
+### 10.8. Vấn đề tồn đọng (cập nhật)
+
+| Mục | Trạng thái | Ghi chú |
+|-----|-----------|---------|
+| model.json format Keras 3 → TF.js | ✅ Đã sửa | batch_input_shape, alpha, xoá Keras 3 fields |
+| LeakyReLU alpha vs negative_slope | ✅ Đã sửa | `negative_slope` → `alpha` |
+| Weights fresh từ Keras model | ✅ Đã copy | 781KB, verified |
+| Client inference **cần test lại** | ⏳ Chưa test | User cần run `npm start` và kiểm tra |
+| Server-side flip bug (`cv2.flip`) | ❌ Chưa sửa | `model.py` dòng `img = cv2.flip(img, 1)` — cần xoá hoặc comment |
+| Firebase config | ✅ Đã cấu hình | Project `aslwebsite-d0a4f` |
+| LiveKit WebRTC | ⏳ Phase 4 | Chưa tích hợp |
+| Mobile responsive | ⏳ Phase 4 | Chưa làm |
+| Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |
+
+### 10.9. Hướng dẫn debug nếu vẫn sai
+
+1. **Mở DevTools Console (F12)** — kiểm tra lỗi load model (network tab xem model.json có 200 không)
+2. **Kiểm tra predicted probabilities**: thêm `console.log(probabilitiesArr)` sau `dataSync()` trong `aslEngine.js`
+3. **So sánh landmarks**: log 42 features ra console và so với training notebook để xem có cùng distribution không
+4. **Thử tắt GPU delegate**: đổi `delegate: 'GPU'` → `delegate: 'CPU'` trong `aslEngine.js` (dòng 66)
+
+### 10.10. Câu lệnh chạy
+
+```bash
+# Frontend (terminal 1)
+cd ~/ASL_website/frontend
+npm start
+
+# Backend (terminal 2) — vẫn cần cho Socket.IO chat/subtitle/whiteboard
+cd ~/ASL_website
+.venv/bin/python -m backend.app
+```
+
+### 10.11. Tổng kết Phase 3
+
+| File | Trạng thái | Mô tả |
+|------|-----------|-------|
+| `frontend/src/services/aslEngine.js` | ✅ Hoàn tất | Singleton engine: MediaPipe WASM + TF.js + skeleton |
+| `frontend/src/components/VideoTile.js` | ✅ Hoàn tất | requestAnimationFrame loop, draw skeleton |
+| `frontend/src/components/CameraFeed.js` | ✅ Hoàn tất | ASL engine integration |
+| `frontend/src/components/Microphone.js` | ✅ Hoàn tất | Giới hạn transcript 30 words |
+| `frontend/src/pages/MeetingRoom.js` | ✅ Hoàn tất | broadcastSubtitle word limits (20 ASL / 30 speech) |
+| `frontend/public/tfjs_model/model.json` | ✅ Đã sửa | Keras 3 → TF.js format fixed |
+| `frontend/public/tfjs_model/group1-shard1of1.bin` | ✅ Fresh | Weights từ model gốc |
+| `frontend/public/labels.json` | ✅ OK | 43 classes, verified |
+| `backend/model.py` (`cv2.flip`) | ❌ Cần sửa | Flip bug gây sai server-side predictions |
