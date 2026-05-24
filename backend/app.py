@@ -3,6 +3,7 @@ import cv2
 import numpy as np
 import base64
 import time
+import atexit
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 from tensorflow.keras.models import load_model
@@ -17,7 +18,7 @@ app = Flask(__name__)
 CORS(app)
 
 # THÊM DÒNG NÀY ĐỂ KHỞI TẠO SOCKET
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='gevent')
 
 # --- 1. CẤU HÌNH ---
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -57,6 +58,7 @@ except Exception as e:
     keras_model = None
 
 print(f"Loading Mediapipe Task from {TASK_PATH}...")
+detector = None
 if os.path.exists(TASK_PATH):
     base_options = python.BaseOptions(model_asset_path=TASK_PATH)
     options = vision.HandLandmarkerOptions(base_options=base_options, num_hands=1)
@@ -64,7 +66,17 @@ if os.path.exists(TASK_PATH):
     print("Mediapipe Detector initialized!")
 else:
     print("Error: Task file not found!")
-    detector = None
+
+# Dọn dẹp MediaPipe trước khi gevent shutdown (tránh lỗi greenlet + free(): invalid pointer)
+def _cleanup():
+    global detector
+    if detector is not None:
+        try:
+            detector.close()
+        except Exception:
+            pass
+        detector = None
+atexit.register(_cleanup)
 
 # Định nghĩa màu sắc ngón tay (Để vẽ đẹp hơn trên Web)
 CONNECTIONS = [

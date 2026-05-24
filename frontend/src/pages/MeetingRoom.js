@@ -126,10 +126,23 @@ export default function MeetingRoom({ user }) {
 
     peer.on("open", (id) => {
       myPeerId.current = id;
+      // Gửi join_room NGAY KHI có peerId (fix: không dùng useEffect với ref)
+      socket.emit("join_room", {
+        room: roomId,
+        username: user.fullname,
+        peerId: id,
+      });
     });
 
     peer.on("call", (call) => {
-      call.answer(localStreamRef.current);
+      const tryAnswer = () => {
+        if (localStreamRef.current) {
+          call.answer(localStreamRef.current);
+        } else {
+          setTimeout(tryAnswer, 300);
+        }
+      };
+      tryAnswer();
       call.on("stream", (remoteStream) => {
         setPeers((prev) => ({
           ...prev,
@@ -142,20 +155,23 @@ export default function MeetingRoom({ user }) {
     });
 
     socket.on("user_joined", (data) => {
-      if (
-        data.peerId &&
-        data.peerId !== myPeerId.current &&
-        localStreamRef.current
-      ) {
-        const call = peer.call(data.peerId, localStreamRef.current, {
-          metadata: { username: user.fullname },
-        });
-        call.on("stream", (remoteStream) => {
-          setPeers((prev) => ({
-            ...prev,
-            [data.peerId]: { stream: remoteStream, name: data.username },
-          }));
-        });
+      if (data.peerId && data.peerId !== myPeerId.current) {
+        const tryCall = () => {
+          if (localStreamRef.current) {
+            const call = peer.call(data.peerId, localStreamRef.current, {
+              metadata: { username: user.fullname },
+            });
+            call.on("stream", (remoteStream) => {
+              setPeers((prev) => ({
+                ...prev,
+                [data.peerId]: { stream: remoteStream, name: data.username },
+              }));
+            });
+          } else {
+            setTimeout(tryCall, 300);
+          }
+        };
+        tryCall();
       }
     });
 
@@ -202,21 +218,7 @@ export default function MeetingRoom({ user }) {
     };
   }, [roomId, user]);
 
-  // Phát tín hiệu join_room CHỈ KHI PeerID và Camera đã sẵn sàng
-  useEffect(() => {
-    // Chúng ta cần check xem `localStreamRef.current` đã được gán giá trị chưa
-    // Nhưng vì nó là ref, nó không kích hoạt render lại, nên ta dùng Interval nhỏ
-    // hoặc chờ đến khi render component có camera.
-    // Cách an toàn là báo join ngay khi lấy được myPeerId, nhưng những người khác sẽ gọi tới.
-    // Nếu có myPeerId thì gửi join.
-    if (myPeerId.current) {
-         socket.emit("join_room", {
-          room: roomId,
-          username: user.fullname,
-          peerId: myPeerId.current,
-        });
-    }
-  }, [roomId, user.fullname, myPeerId.current]);
+
 
   useEffect(() => {
     if (!timerEndTime) return;
@@ -695,19 +697,17 @@ export default function MeetingRoom({ user }) {
             {roomId}
           </div>
 
-          {isShowSubtitle && (
-            <div style={{ display: "flex", gap: "5px", marginLeft: "10px" }}>
-              <button onClick={handleBackspaceASL} style={miniBtnStyle}>
-                ⌫
-              </button>
-              <button
-                onClick={handleClearAll}
-                style={{ ...miniBtnStyle, background: "#ef4444" }}
-              >
-                Clear
-              </button>
-            </div>
-          )}
+          <div style={{ display: "flex", gap: "5px", marginLeft: "10px" }}>
+            <button onClick={handleBackspaceASL} style={miniBtnStyle}>
+              ⌫
+            </button>
+            <button
+              onClick={handleClearAll}
+              style={{ ...miniBtnStyle, background: "#ef4444" }}
+            >
+              Clear
+            </button>
+          </div>
         </div>
 
         <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>

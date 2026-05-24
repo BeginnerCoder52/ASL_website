@@ -34,19 +34,25 @@ export default function CameraFeed({ onResult }) {
     const imageBase64 = tempCanvas.toDataURL("image/jpeg", 0.7); // Nén chất lượng 0.7 cho nhẹ
 
     // Gửi API
+    if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "undefined") {
+      return;
+    }
     fetch(`${process.env.REACT_APP_BACKEND_URL}/api/predict`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ image: imageBase64 }),
     })
-      .then((res) => res.json())
+      .then((res) => {
+        if (!res.ok) return null;
+        return res.json();
+      })
       .then((data) => {
-        if (data.label) {
+        if (data && data.label) {
           // Truyền cả label, confidence và ảnh đã vẽ (processed_image) lên App.js
           onResult(data.label, data.confidence, data.processed_image);
         }
       })
-      .catch((err) => console.error("API Error:", err));
+      .catch(() => {});
   }, [onResult]);
 
   // Thiết lập vòng lặp gửi ảnh khi camera sẵn sàng

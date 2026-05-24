@@ -22,5 +22,5 @@ COPY . .
 # Mở cổng (Render sẽ tiêm biến PORT vào môi trường)
 EXPOSE 10000
 
-# Chạy Gunicorn với Gevent WebSockets
-CMD gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 -b 0.0.0.0:${PORT:-10000} backend.app:app
+# Chạy Gunicorn với Gevent worker (Flask HTTP + SocketIO long-polling)
+CMD gunicorn -k gevent -w 1 -b 0.0.0.0:${PORT:-10000} backend.app:app
