@@ -92,7 +92,24 @@ Vercel chỉ phù hợp host **frontend tĩnh** (React SPA). Không hỗ trợ W
 | 2.4 | `Dockerfile` | Sửa cho tương thích HF Spaces (PORT, healthcheck) |
 | 2.5 | `backend/` | Deploy lên HF Spaces, cập nhật URL trong frontend .env |
 
-### PHASE 3: Thay PeerJS → LiveKit WebRTC
+### PHASE 3: Tối ưu hóa Kiến trúc (Client-side AI Migration)
+**Mục tiêu:** Giảm tải hoàn toàn cho Backend, chuyển luồng xử lý AI (nhận diện ASL) xuống thẳng trình duyệt của người dùng để hỗ trợ số lượng người dùng vô hạn trong một phòng (Zero-Cost Scaling).
+
+- [ ] **Bước 1: Chuyển đổi Model AI**
+  - Dùng thư viện `tensorflowjs_converter` để chuyển đổi file `model_acc98.02.keras` sang định dạng web (`model.json` và các file `.bin`).
+  - Viết script Python nhỏ để đọc `label_encoder.pickle` và xuất ra file `labels.json` (từ điển map giữa ID và Text).
+- [ ] **Bước 2: Cập nhật Frontend (React)**
+  - Cài đặt thư viện AI cho Web: `npm install @tensorflow/tfjs @mediapipe/tasks-vision`.
+  - Khởi tạo MediaPipe Hand Landmarker bằng WebAssembly (WASM) trên trình duyệt.
+  - Load `model.json` và `labels.json` vào RAM của trình duyệt.
+- [ ] **Bước 3: Tích hợp Suy luận (Inference)**
+  - Trích xuất 63 tọa độ khung xương tay từ video local.
+  - Chạy `model.predict()` bằng WebGL trên máy người dùng để lấy kết quả (Text).
+- [ ] **Bước 4: Đồng bộ LiveKit & Xóa Socket.IO**
+  - Gỡ bỏ luồng gửi video frame (Base64) qua Socket.IO.
+  - Sử dụng tính năng **Data Channels** của LiveKit để bắn chuỗi Text (kết quả ASL) siêu nhẹ tới các người dùng khác trong phòng họp.
+
+### PHASE 4: Thay PeerJS → LiveKit WebRTC
 
 | Bước | File cần sửa | Mô tả |
 |------|-------------|-------|
@@ -102,7 +119,7 @@ Vercel chỉ phù hợp host **frontend tĩnh** (React SPA). Không hỗ trợ W
 | 3.4 | `backend/app.py` | Thêm API tạo LiveKit room token (hoặc dùng LiveKit Cloud UI) |
 | 3.5 | `frontend/.env` | Thêm LIVEKIT_URL, LIVEKIT_API_KEY |
 
-### PHASE 4: Mobile Responsive
+### PHASE 5: Mobile Responsive
 
 | Bước | File cần sửa | Mô tả |
 |------|-------------|-------|
@@ -112,7 +129,7 @@ Vercel chỉ phù hợp host **frontend tĩnh** (React SPA). Không hỗ trợ W
 | 4.4 | `frontend/src/pages/Home.js` | Responsive layout cho màn hình nhỏ |
 | 4.5 | `frontend/src/pages/MeetingRoom.js` | Dynamic video grid (1→2→3→4 cột tuỳ số user + màn hình) |
 
-### PHASE 5: Nâng cấp tính năng (theo note.txt)
+### PHASE 6: Nâng cấp tính năng (theo note.txt)
 
 | Bước | File cần sửa | Mô tả |
 |------|-------------|-------|

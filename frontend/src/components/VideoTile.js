@@ -7,34 +7,37 @@ export default function VideoTile({
   name,
   isAslOn,
   isCamOn = true,
-  isMicOn = false, // <-- Thêm isMicOn
+  isMicOn = false,
   onAslResult,
   subtitle,
   holdProgress = 0,
   deviceId,
 }) {
-  const videoRef = useRef(null);
+  const webcamRef = useRef(null);
   const canvasRef = useRef(null);
-  const [mediaStream, setMediaStream] = useState(null); // Lưu trữ luồng gốc có chứa Audio
-  const mediaStreamRef = useRef(null); // Track stream để cleanup khi unmount
-  const streamRef = useRef(stream); // Ổn định callback stream tránh re-render loop
+  const videoRef = useRef(null);
+  const [mediaStream, setMediaStream] = useState(null);
+  const mediaStreamRef = useRef(null);
+  const streamRef = useRef(stream);
 
-  // Xử lý luồng của người khác
   useEffect(() => {
     if (!isLocal && videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream, isLocal]);
 
-  // Xử lý vẽ AI và Canvas
   useEffect(() => {
-    if (!isLocal) return;
-    const video = videoRef.current?.video;
+    streamRef.current = stream;
+  });
+
+  useEffect(() => {
+    if (!isLocal || !isAslOn) return;
+    const video = webcamRef.current?.video;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
     let errorCount = 0;
-    let interval = setInterval(() => {
+    const interval = setInterval(() => {
       if (video.readyState !== 4) return;
       const ctx = canvas.getContext("2d");
 
@@ -43,15 +46,12 @@ export default function VideoTile({
         ctx.fillRect(0, 0, canvas.width, canvas.height);
         return;
       }
-      if (!isAslOn) {
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        return;
-      }
 
-      if (errorCount > 20) return; // Dừng hẳn nếu server lỗi liên tục
+      if (errorCount > 20) return;
       if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "undefined") {
-        if (errorCount === 0) console.warn("⚠️ REACT_APP_BACKEND_URL chưa được cấu hình! Vào Vercel Dashboard → Environment Variables để thêm.");
-        errorCount++; return;
+        if (errorCount === 0) console.warn("REACT_APP_BACKEND_URL chua duoc cau hinh!");
+        errorCount++;
+        return;
       }
 
       const tempCanvas = document.createElement("canvas");
@@ -62,9 +62,7 @@ export default function VideoTile({
       fetch(`${process.env.REACT_APP_BACKEND_URL}/api/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          image: tempCanvas.toDataURL("image/jpeg", 0.6),
-        }),
+        body: JSON.stringify({ image: tempCanvas.toDataURL("image/jpeg", 0.6) }),
       })
         .then((res) => {
           if (!res.ok) { errorCount++; return null; }
@@ -75,12 +73,10 @@ export default function VideoTile({
           if (!data) return;
           if (data.processed_image) {
             const img = new Image();
-            img.onload = () =>
-              ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
             img.src = data.processed_image;
           }
-          if (data.label && onAslResult)
-            onAslResult(data.label, data.confidence);
+          if (data.label && onAslResult) onAslResult(data.label, data.confidence);
         })
         .catch(() => errorCount++);
     }, 300);
@@ -88,34 +84,41 @@ export default function VideoTile({
     return () => clearInterval(interval);
   }, [isLocal, isAslOn, isCamOn, onAslResult]);
 
-  // Ổn định callback stream để tránh re-run effect mỗi lần render
   useEffect(() => {
-    streamRef.current = stream;
-  });
-
-  // GHÉP HÌNH TỪ CANVAS VÀ TIẾNG TỪ MICRO
-  useEffect(() => {
-    if (isLocal && streamRef.current && canvasRef.current && mediaStream) {
-      const canvasStream = canvasRef.current.captureStream(30); // Chỉ có hình
-      const audioTracks = mediaStream.getAudioTracks(); // Lấy tiếng
-
-      if (audioTracks.length > 0) {
-        canvasStream.addTrack(audioTracks[0]); // Ghép vào làm 1
-      }
-      streamRef.current(canvasStream); // Đẩy cho PeerJS gửi đi
-
-      return () => {
-        canvasStream.getTracks().forEach((t) => t.stop());
-      };
+    if (isLocal && !isAslOn && isCamOn && mediaStream && videoRef.current) {
+      videoRef.current.srcObject = mediaStream;
     }
-  }, [isLocal, mediaStream]);
+  }, [isLocal, isAslOn, isCamOn, mediaStream]);
 
-  // Track stream để cleanup khi unmount
+  useEffect(() => {
+    if (!isLocal) return;
+    if (!isCamOn || !mediaStream) return;
+
+    let outputStream;
+    if (isAslOn && canvasRef.current) {
+      outputStream = canvasRef.current.captureStream(30);
+    } else {
+      const videoTrack = mediaStream.getVideoTracks()[0];
+      if (!videoTrack) return;
+      outputStream = new MediaStream([videoTrack.clone()]);
+    }
+
+    const audioTracks = mediaStream.getAudioTracks();
+    if (audioTracks.length > 0) {
+      outputStream.addTrack(audioTracks[0].clone());
+    }
+
+    streamRef.current(outputStream);
+
+    return () => {
+      outputStream.getTracks().forEach((t) => t.stop());
+    };
+  }, [isLocal, isAslOn, isCamOn, mediaStream]);
+
   useEffect(() => {
     mediaStreamRef.current = mediaStream;
   }, [mediaStream]);
 
-  // Dọn dẹp mediaStream khi component unmount
   useEffect(() => {
     return () => {
       if (mediaStreamRef.current) {
@@ -124,14 +127,15 @@ export default function VideoTile({
     };
   }, []);
 
-  // ĐỒNG BỘ NÚT TẮT/MỞ MIC VỚI ĐƯỜNG TRUYỀN
   useEffect(() => {
     if (isLocal && mediaStream) {
       mediaStream.getAudioTracks().forEach((track) => {
-        track.enabled = isMicOn; // Tắt/Mở truyền âm thanh sang máy khác
+        track.enabled = isMicOn;
       });
     }
   }, [isLocal, isMicOn, mediaStream]);
+
+  const showCameraOff = !isCamOn && isLocal;
 
   return (
     <div
@@ -158,14 +162,14 @@ export default function VideoTile({
           fontSize: "14px",
         }}
       >
-        {name} {isLocal ? "(Bạn)" : ""} {isLocal && !isMicOn && " 🔇"}
+        {name} {isLocal ? "(Ban)" : ""} {isLocal && !isMicOn && " TAT MIC"}
       </div>
 
       {isLocal ? (
         <>
           <Webcam
-            key={`cam-${isCamOn}-${deviceId}`} // Force remount khi toggle camera
-            ref={videoRef}
+            key={`cam-${isCamOn}-${deviceId}`}
+            ref={webcamRef}
             audio={true}
             muted={true}
             onUserMedia={(s) => setMediaStream(s)}
@@ -175,17 +179,49 @@ export default function VideoTile({
               facingMode: "user",
             } : false}
           />
-          <canvas
-            ref={canvasRef}
-            width={640}
-            height={480}
-            style={{
-              width: "100%",
-              height: "100%",
-              objectFit: "cover",
-              transform: "scaleX(-1)",
-            }}
-          />
+
+          {isAslOn && isCamOn && (
+            <canvas
+              ref={canvasRef}
+              width={640}
+              height={480}
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: "scaleX(-1)",
+              }}
+            />
+          )}
+
+          {!isAslOn && isCamOn && (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                transform: "scaleX(-1)",
+              }}
+            />
+          )}
+
+          {showCameraOff && (
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                fontSize: "3rem",
+              }}
+            >
+              {"\uD83D\uDEAB"}
+            </div>
+          )}
         </>
       ) : (
         <video
@@ -199,20 +235,6 @@ export default function VideoTile({
             transform: "scaleX(-1)",
           }}
         />
-      )}
-
-      {!isCamOn && isLocal && (
-        <div
-          style={{
-            position: "absolute",
-            top: "50%",
-            left: "50%",
-            transform: "translate(-50%, -50%)",
-            fontSize: "3rem",
-          }}
-        >
-          🚫
-        </div>
       )}
 
       {subtitle && (

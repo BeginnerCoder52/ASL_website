@@ -154,6 +154,30 @@ export default function MeetingRoom({ user }) {
       });
     });
 
+    socket.on("existing_users", (data) => {
+      const users = data.users || [];
+      users.forEach((existing) => {
+        if (existing.peerId && existing.peerId !== myPeerId.current) {
+          const tryCallExisting = () => {
+            if (localStreamRef.current) {
+              const call = peer.call(existing.peerId, localStreamRef.current, {
+                metadata: { username: user.fullname },
+              });
+              call.on("stream", (remoteStream) => {
+                setPeers((prev) => ({
+                  ...prev,
+                  [existing.peerId]: { stream: remoteStream, name: existing.username },
+                }));
+              });
+            } else {
+              setTimeout(tryCallExisting, 300);
+            }
+          };
+          tryCallExisting();
+        }
+      });
+    });
+
     socket.on("user_joined", (data) => {
       if (data.peerId && data.peerId !== myPeerId.current) {
         const tryCall = () => {
@@ -208,6 +232,7 @@ export default function MeetingRoom({ user }) {
 
     return () => {
       peer.destroy();
+      socket.off("existing_users");
       socket.off("user_joined");
       socket.off("user_left");
       socket.off("subtitle_update");
