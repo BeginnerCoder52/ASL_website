@@ -218,7 +218,7 @@ cp -r AI_output_files/tfjs_model frontend/public/
 ### 9.8. Vấn đề tồn đọng (cập nhật)
 
 | Mục | Trạng thái | Ghi chú |
-|-----|-----------|---------|
+|-----|-----------|-------|
 | Firebase config | ✅ Đã cấu hình | Project `aslwebsite-d0a4f` đã active |
 | Firebase Auth + Firestore | ✅ Đã setup | Auth email/password, Firestore users collection |
 | Backend structure | ✅ Đã refactor | Module hóa, config tách riêng |
@@ -226,23 +226,52 @@ cp -r AI_output_files/tfjs_model frontend/public/
 | Convert model TF.js | ✅ Hoàn tất | `labels.json` + `tfjs_model/` sẵn sàng |
 | Dockerfile HF Spaces | ✅ Đã cập nhật | PORT 7860 + HEALTHCHECK |
 | Deploy lên HF Spaces | ⏳ Chưa làm | Cần tạo HF Space + push Docker |
-| LiveKit WebRTC | ⏳ Phase 3 | Chưa tích hợp |
-| Client-side AI | ⏳ Phase 3 | Cần copy model vào `frontend/public/` + code TF.js inference |
+| LiveKit WebRTC | ⏳ Phase 4 | Chưa tích hợp |
+| Client-side AI | ✅ Phase 3 | `aslEngine.js` tạo, VideoTile/CameraFeed dùng client inference |
 | Mobile responsive | ⏳ Phase 4 | Chưa làm |
 | Nâng cấp tính năng | ⏳ Phase 5 | Chưa làm |
 
-### 9.9. Câu lệnh chạy
+### 9.9. Cập nhật Phase 3 — Client-side AI Migration (24/05/2026 chiều)
 
-#### Convert model (nếu cần chạy lại):
-```bash
-cd ~/ASL_website
-.venv/bin/pip install tensorflowjs
-.venv/bin/pip install 'setuptools<68'
-.venv/bin/python AI_output_files/convert_to_web.py
+#### Đã thực hiện:
+
+| File | Trạng thái | Mô tả |
+|------|-----------|-------|
+| `frontend/package.json` | **ĐÃ SỬA** | Thêm `@mediapipe/tasks-vision@0.10.35` |
+| `frontend/src/services/aslEngine.js` | **MỚI** | Client-side ASL engine: MediaPipe WASM + TF.js inference + skeleton drawing |
+| `frontend/src/components/VideoTile.js` | **ĐÃ SỬA** | Dùng client-side ASL engine thay vì gửi frame lên backend `/api/predict` |
+| `frontend/src/components/CameraFeed.js` | **ĐÃ SỬA** | Dùng client-side ASL engine thay vì gửi frame lên backend |
+| `frontend/public/labels.json` | ✅ Có sẵn | 43 classes (0-42) |
+| `frontend/public/tfjs_model/` | ✅ Có sẵn | `model.json` + `group1-shard1of1.bin` |
+
+#### Kiến trúc mới (Client-side AI):
+```
+Webcam → MediaPipe WASM (tasks-vision) → 21 landmarks (x,y) → TF.js model.predict() → Label + Confidence
+                                                                                          ↓
+                                                                                    Canvas skeleton + onAslResult()
 ```
 
-#### Chạy backend local:
+#### Backend `/api/predict` vẫn hoạt động:
+- Backend predict API được giữ nguyên cho các trường hợp fallback
+- Client-side engine là ưu tiên mặc định (không cần gọi backend cho AI nữa)
+
+#### Lưu ý:
+- MediaPipe HandLandmarker load WASM từ CDN jsdelivr + model từ Google Storage
+- TF.js model load từ `public/tfjs_model/model.json`
+- Engine tự động retry init nếu thất bại
+- Khi không detect được tay → trả về "No Hand" (không crash)
+
+### 9.10. Câu lệnh chạy
+
+#### Frontend:
+```bash
+cd frontend
+npm install          # Đã cài @mediapipe/tasks-vision
+npm start            # Chạy frontend (port 3000)
+```
+
+#### Backend (vẫn cần cho Socket.IO chat/whiteboard/timer):
 ```bash
 cd ~/ASL_website
-.venv/bin/python backend/app.py
+.venv/bin/python -m backend.app
 ```

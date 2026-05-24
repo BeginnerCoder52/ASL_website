@@ -262,16 +262,23 @@ export default function MeetingRoom({ user }) {
     return () => clearInterval(interval);
   }, [timerEndTime]);
 
+  const limitWords = (text, max) => {
+    const words = (text || "").split(/\s+/).filter(Boolean);
+    return words.slice(-max).join(" ");
+  };
+
   const broadcastSubtitle = (newAsl, newSpeech) => {
+    const asl = limitWords(newAsl, 20);
+    const speech = limitWords(newSpeech, 30);
     socket.emit("subtitle_update", {
       room: roomId,
       peerId: myPeerId.current,
-      asl: newAsl,
-      speech: newSpeech,
+      asl,
+      speech,
     });
     setSubtitles((prev) => ({
       ...prev,
-      [myPeerId.current]: { asl: newAsl, speech: newSpeech },
+      [myPeerId.current]: { asl, speech },
     }));
   };
 
@@ -326,7 +333,10 @@ export default function MeetingRoom({ user }) {
   };
 
   const handleSpeechResult = (transcript) =>
-    broadcastSubtitle(subtitles[myPeerId.current]?.asl || "", transcript);
+    broadcastSubtitle(
+      subtitles[myPeerId.current]?.asl || "",
+      transcript
+    );
   const handleBackspaceASL = () =>
     broadcastSubtitle(
       (subtitles[myPeerId.current]?.asl || "").slice(0, -1),

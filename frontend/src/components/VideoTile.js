@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from "react";
 import Webcam from "react-webcam";
+import aslEngine from "../services/aslEngine";
 
 export default function VideoTile({
   stream,
@@ -36,10 +37,15 @@ export default function VideoTile({
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
-    let errorCount = 0;
-    const interval = setInterval(() => {
+    aslEngine.initialize();
+
+    const ctx = canvas.getContext("2d");
+    let animFrameId;
+
+    const predictFrame = async () => {
+      animFrameId = requestAnimationFrame(predictFrame);
+
       if (video.readyState !== 4) return;
-      const ctx = canvas.getContext("2d");
 
       if (!isCamOn) {
         ctx.fillStyle = "#1e293b";
@@ -47,41 +53,24 @@ export default function VideoTile({
         return;
       }
 
-      if (errorCount > 20) return;
-      if (!process.env.REACT_APP_BACKEND_URL || process.env.REACT_APP_BACKEND_URL === "undefined") {
-        if (errorCount === 0) console.warn("REACT_APP_BACKEND_URL chua duoc cau hinh!");
-        errorCount++;
-        return;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      const result = await aslEngine.predictFromVideo(video);
+
+      if (result.landmarks) {
+        aslEngine.drawSkeleton(ctx, result.landmarks, canvas.width, canvas.height);
       }
 
-      const tempCanvas = document.createElement("canvas");
-      tempCanvas.width = video.videoWidth;
-      tempCanvas.height = video.videoHeight;
-      tempCanvas.getContext("2d").drawImage(video, 0, 0);
+      if (result.label && onAslResult) {
+        onAslResult(result.label, result.confidence);
+      }
+    };
 
-      fetch(`${process.env.REACT_APP_BACKEND_URL}/api/predict`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ image: tempCanvas.toDataURL("image/jpeg", 0.6) }),
-      })
-        .then((res) => {
-          if (!res.ok) { errorCount++; return null; }
-          errorCount = 0;
-          return res.json();
-        })
-        .then((data) => {
-          if (!data) return;
-          if (data.processed_image) {
-            const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-            img.src = data.processed_image;
-          }
-          if (data.label && onAslResult) onAslResult(data.label, data.confidence);
-        })
-        .catch(() => errorCount++);
-    }, 300);
+    predictFrame();
 
-    return () => clearInterval(interval);
+    return () => {
+      if (animFrameId) cancelAnimationFrame(animFrameId);
+    };
   }, [isLocal, isAslOn, isCamOn, onAslResult]);
 
   useEffect(() => {
