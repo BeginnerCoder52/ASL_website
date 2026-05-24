@@ -75,3 +75,28 @@ To ensure the meeting platform looks professional and functions properly on mobi
 3. **Touch-Enabled Interactions:**
    - The Whiteboard must support touch events (`onTouchStart`, `onTouchMove`, `onTouchEnd`) since mouse events (`onMouseDown`) don't work natively on smartphones.
    - Add pinch-to-zoom support for viewing the main speaker or the whiteboard.
+
+## 🏆 Overall Suggestions: The Ultimate FREE Tech Stack for EduGlyph
+To build and deploy this ASL Meeting platform with zero monthly costs while resolving current limitations, here is the curated combination of the best FREE services (including domain highlighting):
+
+1. **Frontend Hosting & Web Domain:** **Vercel**
+   - *Why:* Unmatched developer experience for React and fast global CDN.
+   - *Domain Status:* **🌟 HIGHLIGHT: Vercel provides a highly-reputable, free SSL subdomain (`your-app.vercel.app`). It also allows you to connect a custom domain (like `.com` or `.tech`) for FREE.**
+
+2. **Backend AI & WebSocket Hosting:** **Hugging Face Spaces** (Docker)
+   - *Why:* Render's free tier sleeps and has low RAM. Hugging Face Spaces provides **16GB RAM and 2 vCPUs for FREE**, which is perfect for running Python Flask, Socket.IO, OpenCV, and Keras/MediaPipe simultaneously without waking delays.
+   - *Domain Status:* **🌟 HIGHLIGHT: Provides a free, secure subdomain (`your-space.hf.space`).**
+
+3. **Database & Authentication:** **Firebase (Auth + Firestore)**
+   - *Why:* The absolute easiest way to handle multi-device user login and real-time meeting state (chat history, user profiles) without writing backend SQL. Works perfectly with React.
+   - *Domain Status:* **🌟 HIGHLIGHT: If you host your frontend on Firebase Hosting instead of Vercel, they provide free `your-app.web.app` and `your-app.firebaseapp.com` subdomains, plus free custom domain routing.**
+
+4. **Multi-User Video Routing (WebRTC):** **LiveKit Cloud**
+   - *Why:* Replaces Socket.IO for heavy video streaming, achieving true "Google Meet" performance. 50GB/month free tier is huge for a startup project.
+
+5. **Getting a FREE Custom Web Domain (Custom TLD):** 
+   - *Note: Truly free top-level domains (like `.com`, `.net`, or `.tk`) do not exist permanently anymore.*
+   - **GitHub Student Developer Pack:** If you have an `.edu` email or university ID, you can get a free `.me`, `.tech`, or `.live` domain for 1 year. **(🌟 HIGHLIGHT: 100% Free for Students)**
+   - **EU.org:** Offers completely free domains (e.g., `eduglyph.eu.org`), but the manual approval process can take months.
+   - **Subdomains:** Stick to the high-quality free subdomains provided by **Vercel (`.vercel.app`)** or **Firebase (`.web.app`)**. They are professional enough for prototyping and production.
+   - **Cheap Alternative:** Buy a `.xyz` or `.icu` domain for ~$1-$2/year on Namecheap and connect it to Vercel for free.
