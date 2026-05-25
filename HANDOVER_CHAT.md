@@ -417,4 +417,72 @@ cd ~/ASL_website
 | `frontend/public/tfjs_model/model.json` | ✅ Đã sửa | Keras 3 → TF.js format fixed |
 | `frontend/public/tfjs_model/group1-shard1of1.bin` | ✅ Fresh | Weights từ model gốc |
 | `frontend/public/labels.json` | ✅ OK | 43 classes, verified |
-| `backend/model.py` (`cv2.flip`) | ❌ Cần sửa | Flip bug gây sai server-side predictions |
+| `backend/model.py` (`cv2.flip`) | ✅ Đã sửa | Remove cv2.flip — training data khong flip nen inference cung khong flip |
+
+---
+
+## 11. CẬP NHẬT PHASE 4 — Ngày 25/05/2026 — Thay PeerJS → LiveKit WebRTC
+
+### 11.1. Tổng quan
+Thay thế hoàn toàn PeerJS (P2P) bằng LiveKit Cloud (SFU) để hỗ trợ video call nhiều người ổn định hơn. Socket.IO vẫn được giữ cho chat, whiteboard, timer, subtitle.
+
+### 11.2. Backend thay đổi
+
+| File | Thay đổi |
+|------|---------|
+| `backend/config.py` | Thêm `LIVEKIT_API_KEY`, `LIVEKIT_API_SECRET`, `LIVEKIT_URL` từ env |
+| `backend/routes.py` | Thêm `POST /api/livekit/token` — tạo JWT token cho LiveKit |
+| `requirements.txt` | Thêm `pyjwt==2.10.1` |
+
+### 11.3. Frontend thay đổi
+
+| File | Thay đổi |
+|------|---------|
+| `frontend/package.json` | Cài `livekit-client` (gỡ `peerjs` khỏi code) |
+| `frontend/src/services/livekitService.js` | **MỚI**: Room connection, token, publish/unpublish tracks |
+| `frontend/src/pages/MeetingRoom.js` | PeerJS → LiveKit: `connectToRoom()`, `publishLocalVideo()`, `setAudioEnabled()` |
+| `frontend/src/components/VideoTile.js` | `stream` callback → `onLocalStreamReady` prop, gọn logic local media |
+| `frontend/.env` | Thêm comment hướng dẫn LiveKit URL |
+
+### 11.4. Kiến trúc mới
+
+```
+Webcam → MediaStream → publishLocalVideo() → LiveKit SFU
+                                                     ↓
+Remote users ← TrackSubscribed ← new MediaStream([track]) → VideoTile (stream prop)
+```
+
+- **Local video**: Webcam → `publishLocalVideo(mediaStream)` → LiveKit cloud → phân phối SFU
+- **Remote video**: LiveKit event `TrackSubscribed` → `new MediaStream([track])` → `peers` state → VideoTile
+- **Audio**: Publish cùng lúc với video qua `mediaStream.getAudioTracks()`, điều khiển mute bằng `setAudioEnabled()`
+- **Socket.IO**: Chỉ dùng cho chat, whiteboard, timer, subtitle (không còn signaling video)
+
+### 11.5. Cấu hình cần làm thủ công
+
+1. **Tạo LiveKit Cloud account**: https://livekit.io → đăng ký free tier
+2. **Lấy API Key + Secret**: Vào Settings → Keys → tạo key mới
+3. **Set environment variables**:
+
+```bash
+# Backend (.env hoặc HF Spaces secrets)
+LIVEKIT_API_KEY=APIxxx
+LIVEKIT_API_SECRET=secretxxx
+LIVEKIT_URL=wss://ten-instance.livekit.cloud
+```
+
+4. **Restart backend** để áp dụng config
+
+### 11.6. Lưu ý
+- LiveKit free tier: 50GB bandwidth/tháng — đủ cho nhóm nhỏ
+- Nếu chưa có LiveKit, app vẫn chạy local (backend predict + socket.io hoạt động bình thường)
+- Video call sẽ không hoạt động cho đến khi có LiveKit config
+- Có thể debug bằng F12 → Network tab → kiểm tra `POST /api/livekit/token`
+
+### 11.7. Vấn đề tồn đọng
+
+| Mục | Trạng thái | Ghi chú |
+|-----|-----------|---------|
+| LiveKit WebRTC | ✅ Đã tích hợp | Code sẵn sàng, cần user config API key |
+| Mobile responsive | ⏳ Phase 5 | Chưa làm |
+| Nâng cấp tính năng | ⏳ Phase 6 | Chưa làm |
+| Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |

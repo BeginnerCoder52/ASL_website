@@ -44,3 +44,8 @@ class Config:
         "Pinky": (255, 0, 255),
         "Palm": (255, 255, 255)
     }
+
+    # LiveKit config
+    LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
+    LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
+    LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://your-livekit-instance.livekit.cloud")

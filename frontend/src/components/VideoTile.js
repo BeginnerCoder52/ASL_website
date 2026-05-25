@@ -13,23 +13,19 @@ export default function VideoTile({
   subtitle,
   holdProgress = 0,
   deviceId,
+  onLocalStreamReady,
 }) {
   const webcamRef = useRef(null);
   const canvasRef = useRef(null);
   const videoRef = useRef(null);
   const [mediaStream, setMediaStream] = useState(null);
   const mediaStreamRef = useRef(null);
-  const streamRef = useRef(stream);
 
   useEffect(() => {
     if (!isLocal && videoRef.current && stream) {
       videoRef.current.srcObject = stream;
     }
   }, [stream, isLocal]);
-
-  useEffect(() => {
-    streamRef.current = stream;
-  });
 
   useEffect(() => {
     if (!isLocal || !isAslOn) return;
@@ -81,28 +77,10 @@ export default function VideoTile({
 
   useEffect(() => {
     if (!isLocal) return;
-    if (!isCamOn || !mediaStream) return;
-
-    let outputStream;
-    if (isAslOn && canvasRef.current) {
-      outputStream = canvasRef.current.captureStream(30);
-    } else {
-      const videoTrack = mediaStream.getVideoTracks()[0];
-      if (!videoTrack) return;
-      outputStream = new MediaStream([videoTrack.clone()]);
+    if (mediaStream && onLocalStreamReady) {
+      onLocalStreamReady(mediaStream);
     }
-
-    const audioTracks = mediaStream.getAudioTracks();
-    if (audioTracks.length > 0) {
-      outputStream.addTrack(audioTracks[0].clone());
-    }
-
-    streamRef.current(outputStream);
-
-    return () => {
-      outputStream.getTracks().forEach((t) => t.stop());
-    };
-  }, [isLocal, isAslOn, isCamOn, mediaStream]);
+  }, [isLocal, mediaStream, onLocalStreamReady]);
 
   useEffect(() => {
     mediaStreamRef.current = mediaStream;

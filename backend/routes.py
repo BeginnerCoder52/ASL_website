@@ -1,4 +1,6 @@
 import os
+import time
+import jwt
 from flask import Blueprint, request, jsonify, send_file
 from backend.config import Config
 from backend.model import ModelManager
@@ -28,6 +30,33 @@ def predict():
     except Exception as e:
         print(f"Prediction error: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+@api_bp.route('/api/livekit/token', methods=['POST'])
+def get_livekit_token():
+    data = request.json
+    room_name = data.get('room')
+    identity = data.get('identity', 'anonymous')
+
+    if not Config.LIVEKIT_API_KEY or not Config.LIVEKIT_API_SECRET:
+        return jsonify({'error': 'LiveKit chua duoc cau hinh'}), 500
+
+    payload = {
+        "iss": Config.LIVEKIT_API_KEY,
+        "sub": identity,
+        "exp": int(time.time()) + 3600,
+        "nbf": int(time.time()),
+        "video": {
+            "room": room_name,
+            "roomJoin": True,
+            "canPublish": True,
+            "canSubscribe": True,
+        }
+    }
+
+    token = jwt.encode(payload, Config.LIVEKIT_API_SECRET, algorithm="HS256")
+
+    return jsonify({'token': token, 'url': Config.LIVEKIT_URL})
 
 
 @api_bp.route('/api/example/<label>', methods=['GET'])

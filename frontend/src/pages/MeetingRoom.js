@@ -1,13 +1,18 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import Peer from "peerjs";
 import io from "socket.io-client";
 import VideoTile from "../components/VideoTile";
 import Whiteboard from "../components/Whiteboard";
 import Microphone from "../components/Microphone";
 import PredictionDisplay from "../components/PredictionDisplay";
+import {
+  connectToRoom,
+  disconnectFromRoom,
+  publishLocalVideo,
+  setAudioEnabled,
+} from "../services/livekitService";
 
-const socket = io(process.env.REACT_APP_BACKEND_URL); // URL Backend của bạn
+const socket = io(process.env.REACT_APP_BACKEND_URL);
 
 const WORD_LIST = [
   "HELLO",
@@ -58,8 +63,8 @@ export default function MeetingRoom({ user }) {
   const [showCamMenu, setShowCamMenu] = useState(false); // Toggle Menu Camera
 
   const localStreamRef = useRef(null);
-  const peerInstance = useRef(null);
-  const myPeerId = useRef("");
+  const roomRef = useRef(null);
+  const mySidRef = useRef("");
   const holdStartRef = useRef(null);
   const lastLabelRef = useRef("");
   const newGameTimeoutRef = useRef(null); // Dùng để clear setTimeout khi unmount
@@ -121,96 +126,53 @@ export default function MeetingRoom({ user }) {
   }, []);
 
   useEffect(() => {
-    const peer = new Peer();
-    peerInstance.current = peer;
+    let cancelled = false;
 
-    peer.on("open", (id) => {
-      myPeerId.current = id;
-      // Gửi join_room NGAY KHI có peerId (fix: không dùng useEffect với ref)
-      socket.emit("join_room", {
-        room: roomId,
-        username: user.fullname,
-        peerId: id,
-      });
-    });
-
-    peer.on("call", (call) => {
-      const tryAnswer = () => {
-        if (localStreamRef.current) {
-          call.answer(localStreamRef.current);
-        } else {
-          setTimeout(tryAnswer, 300);
-        }
-      };
-      tryAnswer();
-      call.on("stream", (remoteStream) => {
-        setPeers((prev) => ({
-          ...prev,
-          [call.peer]: {
-            stream: remoteStream,
-            name: call.metadata?.username || "Học viên",
+    const init = async () => {
+      try {
+        const room = await connectToRoom(roomId, user.fullname, {
+          onTrackSubscribed: (sid, stream, name) => {
+            if (cancelled) return;
+            setPeers((prev) => ({ ...prev, [sid]: { stream, name } }));
           },
-        }));
-      });
-    });
-
-    socket.on("existing_users", (data) => {
-      const users = data.users || [];
-      users.forEach((existing) => {
-        if (existing.peerId && existing.peerId !== myPeerId.current) {
-          const tryCallExisting = () => {
-            if (localStreamRef.current) {
-              const call = peer.call(existing.peerId, localStreamRef.current, {
-                metadata: { username: user.fullname },
-              });
-              call.on("stream", (remoteStream) => {
-                setPeers((prev) => ({
-                  ...prev,
-                  [existing.peerId]: { stream: remoteStream, name: existing.username },
-                }));
-              });
-            } else {
-              setTimeout(tryCallExisting, 300);
-            }
-          };
-          tryCallExisting();
-        }
-      });
-    });
-
-    socket.on("user_joined", (data) => {
-      if (data.peerId && data.peerId !== myPeerId.current) {
-        const tryCall = () => {
-          if (localStreamRef.current) {
-            const call = peer.call(data.peerId, localStreamRef.current, {
-              metadata: { username: user.fullname },
+          onTrackUnsubscribed: (sid) => {
+            if (cancelled) return;
+            setPeers((prev) => {
+              const next = { ...prev };
+              delete next[sid];
+              return next;
             });
-            call.on("stream", (remoteStream) => {
-              setPeers((prev) => ({
-                ...prev,
-                [data.peerId]: { stream: remoteStream, name: data.username },
-              }));
+          },
+          onParticipantDisconnected: (sid) => {
+            if (cancelled) return;
+            setPeers((prev) => {
+              const next = { ...prev };
+              delete next[sid];
+              return next;
             });
-          } else {
-            setTimeout(tryCall, 300);
-          }
-        };
-        tryCall();
-      }
-    });
-
-    // Xóa video khi có người thoát phòng
-    socket.on("user_left", (data) => {
-      setPeers((prev) => {
-        const updatedPeers = { ...prev };
-        Object.keys(updatedPeers).forEach((peerId) => {
-          if (updatedPeers[peerId].name === data.username) {
-            delete updatedPeers[peerId];
-          }
+          },
+          onDisconnected: () => {
+            if (cancelled) return;
+          },
         });
-        return updatedPeers;
-      });
-    });
+        if (cancelled) {
+          disconnectFromRoom();
+          return;
+        }
+        roomRef.current = room;
+        mySidRef.current = room.localParticipant.sid;
+
+        socket.emit("join_room", {
+          room: roomId,
+          username: user.fullname,
+          peerId: room.localParticipant.sid,
+        });
+      } catch (err) {
+        console.error("Loi ket noi LiveKit:", err);
+      }
+    };
+
+    init();
 
     socket.on("subtitle_update", (data) =>
       setSubtitles((prev) => ({
@@ -223,7 +185,6 @@ export default function MeetingRoom({ user }) {
       alert(data.message);
       window.location.href = "/home";
     });
-
     socket.on("timer_started", (data) => setTimerEndTime(data.endTime));
     socket.on("timer_stopped", () => {
       setTimerEndTime(null);
@@ -231,10 +192,8 @@ export default function MeetingRoom({ user }) {
     });
 
     return () => {
-      peer.destroy();
-      socket.off("existing_users");
-      socket.off("user_joined");
-      socket.off("user_left");
+      cancelled = true;
+      disconnectFromRoom();
       socket.off("subtitle_update");
       socket.off("chat_message");
       socket.off("meeting_ended");
@@ -272,13 +231,13 @@ export default function MeetingRoom({ user }) {
     const speech = limitWords(newSpeech, 30);
     socket.emit("subtitle_update", {
       room: roomId,
-      peerId: myPeerId.current,
+      peerId: mySidRef.current,
       asl,
       speech,
     });
     setSubtitles((prev) => ({
       ...prev,
-      [myPeerId.current]: { asl, speech },
+      [mySidRef.current]: { asl, speech },
     }));
   };
 
@@ -298,14 +257,14 @@ export default function MeetingRoom({ user }) {
     }
 
     if (holdStartRef.current && now - holdStartRef.current >= 1500) {
-      let newAsl = subtitles[myPeerId.current]?.asl || "";
+      let newAsl = subtitles[mySidRef.current]?.asl || "";
       if (label === "space") newAsl += " ";
       else if (label === "del") newAsl = newAsl.slice(0, -1);
       else newAsl += label;
 
       const words = newAsl.split(" ");
       if (words.length > 20) newAsl = words.slice(words.length - 20).join(" ");
-      broadcastSubtitle(newAsl, subtitles[myPeerId.current]?.speech || "");
+      broadcastSubtitle(newAsl, subtitles[mySidRef.current]?.speech || "");
 
       if (mode === "game" && !isCompleted) {
         const targetChar = targetPhrase[currentIndex];
@@ -334,13 +293,13 @@ export default function MeetingRoom({ user }) {
 
   const handleSpeechResult = (transcript) =>
     broadcastSubtitle(
-      subtitles[myPeerId.current]?.asl || "",
+      subtitles[mySidRef.current]?.asl || "",
       transcript
     );
   const handleBackspaceASL = () =>
     broadcastSubtitle(
-      (subtitles[myPeerId.current]?.asl || "").slice(0, -1),
-      subtitles[myPeerId.current]?.speech || "",
+      (subtitles[mySidRef.current]?.asl || "").slice(0, -1),
+      subtitles[mySidRef.current]?.speech || "",
     );
   const handleClearAll = () => broadcastSubtitle("", "");
 
@@ -359,20 +318,37 @@ export default function MeetingRoom({ user }) {
     setChatInput("");
   };
 
+  const handleLocalStreamReady = async (mediaStream) => {
+    localStreamRef.current = mediaStream;
+    if (roomRef.current) {
+      try {
+        await publishLocalVideo(mediaStream);
+      } catch (err) {
+        console.error("Loi publish local video:", err);
+      }
+    }
+  };
+
+  useEffect(() => {
+    setAudioEnabled(isMicOn);
+  }, [isMicOn]);
+
   const stopAllMedia = () => {
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((t) => t.stop());
       localStreamRef.current = null;
     }
-    if (peerInstance.current) {
-      peerInstance.current.destroy();
-      peerInstance.current = null;
-    }
+    disconnectFromRoom();
+    roomRef.current = null;
   };
 
   const handleLeaveOnly = () => {
     stopAllMedia();
-    socket.emit("leave_room", { room: roomId, username: user.fullname });
+    socket.emit("leave_room", {
+      room: roomId,
+      username: user.fullname,
+      peerId: mySidRef.current,
+    });
     navigate("/home");
   };
 
@@ -534,7 +510,6 @@ export default function MeetingRoom({ user }) {
             }}
           >
             <div style={camStyle}>
-              {/* TRUYỀN isMicOn VÀO ĐÂY ĐỂ ĐỒNG BỘ ÂM THANH */}
               <VideoTile
                 isLocal={true}
                 name={user.fullname}
@@ -542,9 +517,9 @@ export default function MeetingRoom({ user }) {
                 isCamOn={isCamOn}
                 isMicOn={isMicOn}
                 onAslResult={handleAslResult}
-                subtitle={renderSubtitleText(myPeerId.current)}
+                subtitle={renderSubtitleText(mySidRef.current)}
                 holdProgress={holdProgress}
-                stream={(s) => (localStreamRef.current = s)}
+                onLocalStreamReady={handleLocalStreamReady}
                 deviceId={selectedCamera}
               />
             </div>

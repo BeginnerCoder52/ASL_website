@@ -81,7 +81,7 @@ class ModelManager:
             img_bytes = base64.b64decode(image_data)
             nparr = np.frombuffer(img_bytes, np.uint8)
             img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            img = cv2.flip(img, 1)
+            # KHONG flip: training data khong flip nen inference cung khong flip
             h, w, _ = img.shape
 
             img_rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
