@@ -73,8 +73,22 @@ export default function App() {
       }}>
         <div style={{ fontSize: "3rem", marginBottom: "20px" }}>⚠️</div>
         <h2 style={{ color: "#fff", marginBottom: "10px" }}>Lỗi kết nối Firebase</h2>
-        <p style={{ color: "#94a3b8", maxWidth: "400px" }}>
-          Không thể khởi tạo Firebase. Kiểm tra lại biến môi trường trong file <code>.env</code>.
+        <p style={{ color: "#94a3b8", maxWidth: "440px", lineHeight: "1.6" }}>
+          Kiểm tra 3 nguyên nhân sau:
+        </p>
+        <ol style={{ color: "#cbd5e1", maxWidth: "440px", textAlign: "left", lineHeight: "2" }}>
+          <li>
+            <b>Vercel Dashboard:</b> Vào Project Settings → Environment Variables → <span style={{ color: "#fbbf24" }}>XÓA</span> tất cả <code>REACT_APP_FIREBASE_*</code> nếu có (để file <code>.env</code> được dùng).
+          </li>
+          <li>
+            <b>Firebase Console:</b> Vào Authentication → "Get Started" → bật <b>Email/Password</b> sign-in.
+          </li>
+          <li>
+            <b>API Key:</b> Google Cloud Console → APIs & Services → Credentials → kiểm tra key <code>AIzaSyDE...</code> không bị giới hạn domain.
+          </li>
+        </ol>
+        <p style={{ color: "#64748b", fontSize: "12px", marginTop: "20px" }}>
+          Mở F12 → Console để xem log chi tiết.
         </p>
       </div>
     );
