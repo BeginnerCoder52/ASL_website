@@ -18,8 +18,14 @@ import "./App.css";
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [fbError, setFbError] = useState(false);
 
   useEffect(() => {
+    if (!auth) {
+      setFbError(true);
+      setLoading(false);
+      return;
+    }
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       if (firebaseUser) {
         const profile = await getUserProfile(firebaseUser.uid);
@@ -48,6 +54,28 @@ export default function App() {
         fontSize: "1.2rem",
       }}>
         Đang tải...
+      </div>
+    );
+  }
+
+  if (fbError) {
+    return (
+      <div style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        alignItems: "center",
+        background: "#0f172a",
+        color: "#ef4444",
+        padding: "20px",
+        textAlign: "center",
+      }}>
+        <div style={{ fontSize: "3rem", marginBottom: "20px" }}>⚠️</div>
+        <h2 style={{ color: "#fff", marginBottom: "10px" }}>Lỗi kết nối Firebase</h2>
+        <p style={{ color: "#94a3b8", maxWidth: "400px" }}>
+          Không thể khởi tạo Firebase. Kiểm tra lại biến môi trường trong file <code>.env</code>.
+        </p>
       </div>
     );
   }

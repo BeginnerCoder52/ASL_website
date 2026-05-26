@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import io from "socket.io-client";
 import VideoTile from "../components/VideoTile";
@@ -67,7 +67,15 @@ export default function MeetingRoom({ user }) {
   const mySidRef = useRef("");
   const holdStartRef = useRef(null);
   const lastLabelRef = useRef("");
-  const newGameTimeoutRef = useRef(null); // Dùng để clear setTimeout khi unmount
+  const newGameTimeoutRef = useRef(null);
+
+  // PHASE 5: Mobile detection
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth <= 768);
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   // Quét thiết bị Camera
   useEffect(() => {
@@ -405,11 +413,14 @@ export default function MeetingRoom({ user }) {
   };
 
   const totalUsers = 1 + Object.keys(peers).length;
-  const camStyle = {
-    width: "100%",
-    maxWidth: totalUsers === 1 ? "700px" : "400px",
-    minWidth: "280px",
-  };
+  // PHASE 5: Dynamic video grid columns
+  const gridCols = useMemo(() => {
+    if (isMobile) return totalUsers <= 2 ? 1 : 2;
+    if (totalUsers <= 2) return 2;
+    if (totalUsers <= 4) return 2;
+    if (totalUsers <= 6) return 3;
+    return 4;
+  }, [totalUsers, isMobile]);
 
   return (
     <div
@@ -426,21 +437,21 @@ export default function MeetingRoom({ user }) {
         <div
           style={{
             position: "fixed",
-            top: "20px",
+            top: isMobile ? "10px" : "20px",
             left: "50%",
             transform: "translateX(-50%)",
             background: timeLeft <= 10000 ? "#ef4444" : "rgba(30, 41, 59, 0.9)",
             color: "white",
-            padding: "10px 30px",
+            padding: isMobile ? "6px 16px" : "10px 30px",
             borderRadius: "30px",
-            fontSize: "24px",
+            fontSize: isMobile ? "16px" : "24px",
             fontWeight: "bold",
             zIndex: 10000,
             boxShadow: "0 5px 15px rgba(0,0,0,0.5)",
             border: "2px solid #00ffea",
             display: "flex",
             alignItems: "center",
-            gap: "15px",
+            gap: isMobile ? "8px" : "15px",
           }}
         >
           ⏳ {formatTime(timeLeft)}
@@ -452,7 +463,7 @@ export default function MeetingRoom({ user }) {
                 border: "none",
                 color: "white",
                 cursor: "pointer",
-                fontSize: "18px",
+                fontSize: isMobile ? "14px" : "18px",
               }}
             >
               ✖
@@ -493,60 +504,76 @@ export default function MeetingRoom({ user }) {
         )}
 
         <div
-          style={{ flex: 1, display: "flex", gap: "10px", overflow: "hidden" }}
+          style={{
+            flex: 1,
+            display: "flex",
+            gap: "10px",
+            overflow: "hidden",
+            flexDirection: isMobile && showChat ? "column" : "row",
+          }}
         >
-          {/* Lưới Camera */}
+          {/* PHASE 5: Dynamic video grid — CSS Grid layout */}
           <div
             style={{
               flex: showWhiteboard ? 1.5 : 1,
-              display: "flex",
-              flexWrap: "wrap",
+              display: "grid",
+              gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
               justifyContent: "center",
               alignItems: "center",
               alignContent: "center",
-              gap: "20px",
+              gap: isMobile ? "8px" : "20px",
               overflowY: "auto",
-              padding: "20px",
+              padding: isMobile ? "8px" : "20px",
             }}
           >
-            <div style={camStyle}>
-              <VideoTile
-                isLocal={true}
-                name={user.fullname}
-                isAslOn={isAslOn}
-                isCamOn={isCamOn}
-                isMicOn={isMicOn}
-                onAslResult={handleAslResult}
-                subtitle={renderSubtitleText(mySidRef.current)}
-                holdProgress={holdProgress}
-                onLocalStreamReady={handleLocalStreamReady}
-                deviceId={selectedCamera}
-              />
-            </div>
+            <VideoTile
+              isLocal={true}
+              name={user.fullname}
+              isAslOn={isAslOn}
+              isCamOn={isCamOn}
+              isMicOn={isMicOn}
+              onAslResult={handleAslResult}
+              subtitle={renderSubtitleText(mySidRef.current)}
+              holdProgress={holdProgress}
+              onLocalStreamReady={handleLocalStreamReady}
+              deviceId={selectedCamera}
+            />
 
             {Object.keys(peers).map((peerId) => (
-              <div key={peerId} style={camStyle}>
-                <VideoTile
-                  isLocal={false}
-                  name={peers[peerId].name}
-                  stream={peers[peerId].stream}
-                  subtitle={renderSubtitleText(peerId)}
-                />
-              </div>
+              <VideoTile
+                key={peerId}
+                isLocal={false}
+                name={peers[peerId].name}
+                stream={peers[peerId].stream}
+                subtitle={renderSubtitleText(peerId)}
+              />
             ))}
           </div>
 
+          {/* PHASE 5: Whiteboard — fullscreen overlay on mobile */}
           {showWhiteboard && (
             <div
               style={{
-                flex: 1,
-                minWidth: "400px",
-                maxWidth: "600px",
+                flex: isMobile ? "none" : 1,
+                minWidth: isMobile ? "100%" : "400px",
+                maxWidth: isMobile ? "100%" : "600px",
                 border: "2px solid #334155",
                 borderRadius: "12px",
                 overflow: "hidden",
                 display: "flex",
                 flexDirection: "column",
+                ...(isMobile
+                  ? {
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      width: "100%",
+                      height: "100%",
+                      zIndex: 9999,
+                      background: "#0f172a",
+                      borderRadius: 0,
+                    }
+                  : {}),
               }}
             >
               <Whiteboard
@@ -556,15 +583,26 @@ export default function MeetingRoom({ user }) {
             </div>
           )}
 
+          {/* PHASE 5: Chat — fullscreen overlay on mobile */}
           {showChat && (
             <div
               style={{
-                width: "320px",
+                width: isMobile ? "100%" : "320px",
                 background: "#1e293b",
                 borderRadius: "12px",
                 display: "flex",
                 flexDirection: "column",
                 border: "1px solid #334155",
+                ...(isMobile
+                  ? {
+                      position: "fixed",
+                      top: 0,
+                      left: 0,
+                      height: "100%",
+                      zIndex: 9999,
+                      borderRadius: 0,
+                    }
+                  : {}),
               }}
             >
               <div
@@ -583,6 +621,7 @@ export default function MeetingRoom({ user }) {
                     border: "none",
                     color: "white",
                     cursor: "pointer",
+                    fontSize: "20px",
                   }}
                 >
                   ✖
@@ -666,62 +705,66 @@ export default function MeetingRoom({ user }) {
         </div>
       </div>
 
-      {/* THANH CÔNG CỤ DƯỚI ĐÁY */}
+      {/* PHASE 5: Bottom control bar — compact on mobile */}
       <div
         style={{
-          height: "80px",
+          height: isMobile ? "60px" : "80px",
           background: "#1e293b",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
-          padding: "0 30px",
+          padding: isMobile ? "0 10px" : "0 30px",
           zIndex: 100,
+          gap: isMobile ? "4px" : "0",
         }}
       >
         <div
           style={{
             display: "flex",
-            gap: "15px",
-            width: "380px",
+            gap: isMobile ? "4px" : "15px",
+            width: isMobile ? "auto" : "380px",
             alignItems: "center",
           }}
         >
-          <div
-            style={{
-              color: "#00ffea",
-              fontSize: "24px",
-              fontFamily:
-                '\"Comic Sans MS\", \"Chalkboard SE\", \"Comic Neue\", cursive',
-              fontWeight: "bold",
-            }}
-          >
-            EduGlyph
-          </div>
-          <div
-            style={{
-              color: "#94a3b8",
-              borderLeft: "1px solid #334155",
-              paddingLeft: "15px",
-            }}
-          >
-            {roomId}
-          </div>
+          {!isMobile && (
+            <>
+              <div
+                style={{
+                  color: "#00ffea",
+                  fontSize: "24px",
+                  fontFamily:
+                    '\"Comic Sans MS\", \"Chalkboard SE\", \"Comic Neue\", cursive',
+                  fontWeight: "bold",
+                }}
+              >
+                EduGlyph
+              </div>
+              <div
+                style={{
+                  color: "#94a3b8",
+                  borderLeft: "1px solid #334155",
+                  paddingLeft: "15px",
+                }}
+              >
+                {roomId}
+              </div>
+            </>
+          )}
 
-          <div style={{ display: "flex", gap: "5px", marginLeft: "10px" }}>
-            <button onClick={handleBackspaceASL} style={miniBtnStyle}>
+          <div style={{ display: "flex", gap: "5px", marginLeft: isMobile ? 0 : "10px" }}>
+            <button onClick={handleBackspaceASL} style={isMobile ? miniBtnMobile : miniBtnStyle}>
               ⌫
             </button>
             <button
               onClick={handleClearAll}
-              style={{ ...miniBtnStyle, background: "#ef4444" }}
+              style={isMobile ? { ...miniBtnMobile, background: "#ef4444" } : { ...miniBtnStyle, background: "#ef4444" }}
             >
               Clear
             </button>
           </div>
         </div>
 
-        <div style={{ display: "flex", gap: "15px", alignItems: "center" }}>
-          {/* LẤY STATE isMicOn TỪ MICROPHONE */}
+        <div style={{ display: "flex", gap: isMobile ? "6px" : "15px", alignItems: "center" }}>
           <Microphone
             onSpeechResult={handleSpeechResult}
             onMicToggle={(status) => setIsMicOn(status)}
@@ -736,12 +779,11 @@ export default function MeetingRoom({ user }) {
           >
             <button
               onClick={() => setIsCamOn(!isCamOn)}
-              style={circleBtnStyle(isCamOn ? "#334155" : "#ef4444", "#fff")}
+              style={isMobile ? circleBtnMobile(isCamOn ? "#334155" : "#ef4444", "#fff") : circleBtnStyle(isCamOn ? "#334155" : "#ef4444", "#fff")}
             >
               {isCamOn ? "📹" : "🚫"}
             </button>
 
-            {/* NÚT MỞ MENU CHỌN CAMERA CHUẨN GOOGLE MEET */}
             {cameras.length > 1 && (
               <button
                 onClick={() => setShowCamMenu(!showCamMenu)}
@@ -750,20 +792,20 @@ export default function MeetingRoom({ user }) {
                   border: "none",
                   color: "white",
                   cursor: "pointer",
-                  marginLeft: "5px",
-                  padding: "5px",
+                  marginLeft: "3px",
+                  padding: "3px",
+                  fontSize: isMobile ? "10px" : "inherit",
                 }}
               >
                 ▲
               </button>
             )}
 
-            {/* POPUP MENU CHỌN CAMERA */}
             {showCamMenu && cameras.length > 1 && (
               <div
                 style={{
                   position: "absolute",
-                  bottom: "60px",
+                  bottom: isMobile ? "50px" : "60px",
                   left: "50%",
                   transform: "translateX(-50%)",
                   background: "#1e293b",
@@ -773,7 +815,7 @@ export default function MeetingRoom({ user }) {
                   display: "flex",
                   flexDirection: "column",
                   gap: "8px",
-                  minWidth: "180px",
+                  minWidth: isMobile ? "160px" : "180px",
                   zIndex: 1000,
                   boxShadow: "0 5px 15px rgba(0,0,0,0.5)",
                 }}
@@ -819,33 +861,17 @@ export default function MeetingRoom({ user }) {
 
           <button
             onClick={() => setIsAslOn(!isAslOn)}
-            style={circleBtnStyle(
-              isAslOn ? "#00ffea" : "#334155",
-              isAslOn ? "#000" : "#fff",
-            )}
+            style={isMobile ? circleBtnMobile(isAslOn ? "#00ffea" : "#334155", isAslOn ? "#000" : "#fff") : circleBtnStyle(isAslOn ? "#00ffea" : "#334155", isAslOn ? "#000" : "#fff")}
           >
             ✨
           </button>
           <button
             onClick={() => setIsShowSubtitle(!isShowSubtitle)}
-            style={circleBtnStyle(
-              isShowSubtitle ? "#00ffea" : "#334155",
-              isShowSubtitle ? "#000" : "#fff",
-            )}
+            style={isMobile ? circleBtnMobile(isShowSubtitle ? "#00ffea" : "#334155", isShowSubtitle ? "#000" : "#fff") : circleBtnStyle(isShowSubtitle ? "#00ffea" : "#334155", isShowSubtitle ? "#000" : "#fff")}
           >
             📝
           </button>
-        </div>
 
-        <div
-          style={{
-            display: "flex",
-            gap: "15px",
-            width: "380px",
-            justifyContent: "flex-end",
-            alignItems: "center",
-          }}
-        >
           {user.isTeacher && (
             <button
               onClick={() => setShowTimerConfig(true)}
@@ -853,39 +879,31 @@ export default function MeetingRoom({ user }) {
                 background: "transparent",
                 color: "#fbbf24",
                 border: "1px solid #fbbf24",
-                padding: "10px 15px",
+                padding: isMobile ? "4px 8px" : "10px 15px",
                 borderRadius: "25px",
                 cursor: "pointer",
                 fontWeight: "bold",
+                fontSize: isMobile ? "12px" : "inherit",
               }}
             >
-              ⏱ Hẹn giờ
+              ⏱
             </button>
           )}
           <button
             onClick={() => setMode(mode === "game" ? "free" : "game")}
-            style={circleBtnStyle(
-              mode === "game" ? "#00ffea" : "#334155",
-              mode === "game" ? "#000" : "#fff",
-            )}
+            style={isMobile ? circleBtnMobile(mode === "game" ? "#00ffea" : "#334155", mode === "game" ? "#000" : "#fff") : circleBtnStyle(mode === "game" ? "#00ffea" : "#334155", mode === "game" ? "#000" : "#fff")}
           >
             🎮
           </button>
           <button
             onClick={() => setShowWhiteboard(!showWhiteboard)}
-            style={circleBtnStyle(
-              showWhiteboard ? "#00ffea" : "#334155",
-              showWhiteboard ? "#000" : "#fff",
-            )}
+            style={isMobile ? circleBtnMobile(showWhiteboard ? "#00ffea" : "#334155", showWhiteboard ? "#000" : "#fff") : circleBtnStyle(showWhiteboard ? "#00ffea" : "#334155", showWhiteboard ? "#000" : "#fff")}
           >
             🎨
           </button>
           <button
             onClick={() => setShowChat(!showChat)}
-            style={circleBtnStyle(
-              showChat ? "#00ffea" : "#334155",
-              showChat ? "#000" : "#fff",
-            )}
+            style={isMobile ? circleBtnMobile(showChat ? "#00ffea" : "#334155", showChat ? "#000" : "#fff") : circleBtnStyle(showChat ? "#00ffea" : "#334155", showChat ? "#000" : "#fff")}
           >
             💬
           </button>
@@ -896,12 +914,13 @@ export default function MeetingRoom({ user }) {
               color: "white",
               border: "none",
               borderRadius: "25px",
-              padding: "10px 20px",
+              padding: isMobile ? "8px 12px" : "10px 20px",
               fontWeight: "bold",
               cursor: "pointer",
+              fontSize: isMobile ? "12px" : "inherit",
             }}
           >
-            ☎ Rời khỏi
+            {isMobile ? "☎" : "☎ Rời khỏi"}
           </button>
         </div>
       </div>
@@ -920,15 +939,18 @@ export default function MeetingRoom({ user }) {
             justifyContent: "center",
             alignItems: "center",
             zIndex: 10001,
+            padding: isMobile ? "16px" : "0",
+            boxSizing: "border-box",
           }}
         >
           <div
             style={{
               background: "#1e293b",
-              padding: "30px",
+              padding: isMobile ? "20px" : "30px",
               borderRadius: "15px",
               color: "white",
-              width: "300px",
+              width: isMobile ? "100%" : "300px",
+              maxWidth: "300px",
               textAlign: "center",
               border: "1px solid #00ffea",
             }}
@@ -1015,15 +1037,18 @@ export default function MeetingRoom({ user }) {
             justifyContent: "center",
             alignItems: "center",
             zIndex: 9999,
+            padding: isMobile ? "16px" : "0",
+            boxSizing: "border-box",
           }}
         >
           <div
             style={{
               background: "#1e293b",
-              padding: "30px",
+              padding: isMobile ? "20px" : "30px",
               borderRadius: "15px",
               color: "white",
-              width: "400px",
+              width: isMobile ? "100%" : "400px",
+              maxWidth: "400px",
               textAlign: "center",
             }}
           >
@@ -1101,3 +1126,28 @@ const miniBtnStyle = {
   fontWeight: "bold",
   fontSize: "14px",
 };
+// PHASE 5: Smaller buttons for mobile
+const miniBtnMobile = {
+  background: "#475569",
+  color: "white",
+  border: "none",
+  padding: "4px 8px",
+  cursor: "pointer",
+  borderRadius: "6px",
+  fontWeight: "bold",
+  fontSize: "11px",
+};
+const circleBtnMobile = (bg, color) => ({
+  background: bg,
+  color: color,
+  border: "none",
+  width: "36px",
+  height: "36px",
+  borderRadius: "50%",
+  fontSize: "14px",
+  cursor: "pointer",
+  transition: "0.2s",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+});

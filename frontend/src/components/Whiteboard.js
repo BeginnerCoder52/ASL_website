@@ -70,11 +70,57 @@ export default function Whiteboard({ room, onClose }) {
   // 2. Lấy tọa độ CHUẨN XÁC sau khi bị Zoom
   const getCoordinates = (e) => {
     const canvas = canvasRef.current;
-    const rect = canvas.getBoundingClientRect(); // Lấy vị trí thực tế của canvas trên màn hình
+    const rect = canvas.getBoundingClientRect();
     return {
       x: (e.clientX - rect.left) / scale,
       y: (e.clientY - rect.top) / scale,
     };
+  };
+
+  // PHASE 5: Touch events for mobile
+  const getTouchCoordinates = (e) => {
+    const canvas = canvasRef.current;
+    const rect = canvas.getBoundingClientRect();
+    const touch = e.touches[0] || e.changedTouches[0];
+    return {
+      x: (touch.clientX - rect.left) / scale,
+      y: (touch.clientY - rect.top) / scale,
+    };
+  };
+
+  const handleTouchStart = (e) => {
+    e.preventDefault();
+    const { x, y } = getTouchCoordinates(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    setIsDrawing(true);
+  };
+
+  const handleTouchMove = (e) => {
+    e.preventDefault();
+    if (!isDrawing) return;
+    const { x, y } = getTouchCoordinates(e);
+    const ctx = canvasRef.current.getContext("2d");
+    ctx.lineTo(x, y);
+    ctx.strokeStyle = isEraser ? "#ffffff" : color;
+    ctx.lineWidth = isEraser ? 20 : lineWidth;
+    ctx.stroke();
+
+    socket.emit("draw_line", {
+      room,
+      x,
+      y,
+      color: isEraser ? "#ffffff" : color,
+      width: isEraser ? 20 : lineWidth,
+    });
+  };
+
+  const handleTouchEnd = (e) => {
+    e.preventDefault();
+    setIsDrawing(false);
+    canvasRef.current.getContext("2d").beginPath();
+    saveBoard();
   };
 
   // 3. Xử lý sự kiện Vẽ
@@ -173,13 +219,17 @@ export default function Whiteboard({ room, onClose }) {
           onMouseMove={draw}
           onMouseUp={stopDrawing}
           onMouseLeave={stopDrawing}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{
             display: "block",
             cursor: isEraser ? "cell" : "crosshair",
-            transform: `scale(${scale})`, // CSS Zoom
-            transformOrigin: "top left", // Bắt buộc để thuật toán tọa độ chính xác
+            transform: `scale(${scale})`,
+            transformOrigin: "top left",
             boxShadow: "0 0 20px rgba(0,0,0,0.1)",
-            margin: "20px", // Khoảng cách so với lề
+            margin: "20px",
+            touchAction: "none",
           }}
         />
       </div>
