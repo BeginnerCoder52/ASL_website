@@ -483,6 +483,76 @@ LIVEKIT_URL=wss://ten-instance.livekit.cloud
 | Mục | Trạng thái | Ghi chú |
 |-----|-----------|---------|
 | LiveKit WebRTC | ✅ Đã tích hợp | Code sẵn sàng, cần user config API key |
-| Mobile responsive | ⏳ Phase 5 | Chưa làm |
+| Mobile responsive | ✅ Đã làm | Phase 5 hoàn tất |
 | Nâng cấp tính năng | ⏳ Phase 6 | Chưa làm |
 | Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |
+
+---
+
+## 12. CẬP NHẬT PHASE 5 — Ngày 27/05/2026 — Mobile Responsive
+
+### 12.1. Tổng quan
+
+Thêm responsive cho màn hình điện thoại (<768px) cho toàn bộ frontend: Home, MeetingRoom, Whiteboard, Auth pages.
+
+### 12.2. Các file đã sửa
+
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/App.css` | Media queries `@media (max-width: 768px)` + `480px`. Responsive cho `.prediction-panel`, `.subtitle-overlay`, `.teacher-note`, `.auth-box`, `.clear-subtitle-btn`, `.main-header`, `.logo-text` |
+| `frontend/src/pages/MeetingRoom.js` | Thêm `isMobile` state + resize listener; video grid chuyển sang CSS Grid (số cột dynamic theo user count); chat & whiteboard thành fullscreen overlay trên mobile; bottom bar compact (nút 36px, padding/gap nhỏ, ẩn logo/roomId); modals responsive width |
+| `frontend/src/components/Whiteboard.js` | Thêm `onTouchStart/Move/End` handlers + `getTouchCoordinates()` + `touchAction: none` |
+| `frontend/src/pages/Home.js` | Thêm `isMobile` state; flex column trên mobile; nút/input full-width; ẩn cột hình ảnh khi mobile |
+
+### 12.3. Fix Vercel deploy — Firebase blank page
+
+#### Vấn đề 1: `.env` sai format
+
+File `.env` có dấu nháy kép `"AIzaSy..."` và khoảng trắng thừa quanh `=`. `dotenv` đọc nguyên cả dấu nháy → Firebase `initializeApp()` nhận API key là `"AIzaSy..."` (có quotes) → `auth/invalid-api-key` → app crash → page trắng.
+
+**Fix:** Xóa quotes, xóa khoảng trắng quanh `=`.
+
+#### Vấn đề 2: `.env` bị `.gitignore`
+
+File `.gitignore` có dòng `.env` (không prefix path) → git bỏ qua `frontend/.env` → không push lên GitHub → Vercel build không thấy file → `process.env.REACT_APP_FIREBASE_*` đều `undefined`.
+
+**Fix:** Thêm `!frontend/.env` vào `.gitignore` (un-ignore chỉ file frontend).
+
+#### Vấn đề 3: Firebase error handling
+
+`firebase.js` module-level init không có try/catch → khi Firebase fail thì toàn bộ app sập.
+
+**Fix:** Thêm try/catch quanh `initializeApp()` + `getAuth()` + `getFirestore()`. Thêm diagnostic logging (masked API key). App.js hiển thị fallback UI với hướng dẫn.
+
+### 12.4. File cấu hình đã sửa
+
+| File | Thay đổi |
+|------|---------|
+| `frontend/.env` | Xóa quotes `"..."`, xóa khoảng trắng quanh `=`, xóa dòng duplicate `REACT_APP_BACKEND_URL` |
+| `.gitignore` | Thêm `!frontend/.env` |
+
+### 12.5. File services đã sửa
+
+| File | Thay đổi |
+|------|---------|
+| `frontend/src/services/firebase.js` | Thêm try/catch, logging masked API key, check config validation |
+
+### 12.6. Vấn đề tồn đọng
+
+| Mục | Trạng thái | Ghi chú |
+|-----|-----------|---------|
+| Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |
+| Nâng cấp tính năng | ⏳ Phase 6 | Sticky notes, collaborative cursors, save whiteboard |
+
+### 12.7. Câu lệnh chạy
+
+```bash
+cd ~/ASL_website/frontend
+npm start
+```
+
+Backend vẫn cần chạy cho Socket.IO + LiveKit token:
+```bash
+cd ~/ASL_website
+.venv/bin/python -m backend.app
+```
