@@ -14,7 +14,10 @@ export async function getLiveKitToken(roomName, identity) {
 }
 
 export async function connectToRoom(roomName, identity, callbacks) {
-  const { token, url } = await getLiveKitToken(roomName, identity);
+  const { token, url: backendUrl } = await getLiveKitToken(roomName, identity);
+
+  // Use REACT_APP_LIVEKIT_URL from frontend .env (if set), fallback to backend URL
+  const livekitUrl = process.env.REACT_APP_LIVEKIT_URL || backendUrl;
 
   room = new Room({
     adaptiveStream: true,
@@ -37,6 +40,11 @@ export async function connectToRoom(roomName, identity, callbacks) {
     }
   });
 
+  room.on(RoomEvent.ParticipantConnected, (participant) => {
+    console.log('LiveKit participant connected:', participant.identity, participant.sid);
+    callbacks.onParticipantConnected?.(participant.sid, participant.name || participant.identity || 'Hoc vien');
+  });
+
   room.on(RoomEvent.ParticipantDisconnected, (participant) => {
     callbacks.onParticipantDisconnected?.(participant.sid);
   });
@@ -45,7 +53,7 @@ export async function connectToRoom(roomName, identity, callbacks) {
     callbacks.onDisconnected?.();
   });
 
-  await room.connect(url, token);
+  await room.connect(livekitUrl, token);
   return room;
 }
 

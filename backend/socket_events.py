@@ -2,6 +2,7 @@ from flask import request
 from flask_socketio import join_room, leave_room, emit
 from backend import socketio
 from backend.services.room_manager import RoomManager
+import uuid
 
 room_manager = RoomManager()
 
@@ -87,3 +88,46 @@ def handle_stop_timer(data):
 @socketio.on('subtitle_update')
 def handle_subtitle(data):
     emit('subtitle_update', data, room=data['room'], include_self=False)
+
+
+@socketio.on('sticky_add')
+def handle_sticky_add(data):
+    sticky = {
+        'id': str(uuid.uuid4()),
+        'x': data['x'],
+        'y': data['y'],
+        'text': data.get('text', ''),
+        'color': data.get('color', '#ffd700'),
+        'mode': data.get('mode', 'keyboard'),
+        'username': data.get('username', 'User'),
+    }
+    room_manager.add_sticky(data['room'], sticky)
+    emit('sticky_add', {'sticky': sticky}, room=data['room'])
+
+
+@socketio.on('sticky_update')
+def handle_sticky_update(data):
+    sticky = data['sticky']
+    room_manager.update_sticky(data['room'], sticky)
+    emit('sticky_update', {'sticky': sticky}, room=data['room'], include_self=False)
+
+
+@socketio.on('sticky_remove')
+def handle_sticky_remove(data):
+    room_manager.remove_sticky(data['room'], data['id'])
+    emit('sticky_remove', {'id': data['id']}, room=data['room'], include_self=False)
+
+
+@socketio.on('request_stickies')
+def handle_request_stickies(data):
+    stickies = room_manager.get_stickies(data['room'])
+    emit('load_stickies', {'stickies': stickies}, to=request.sid)
+
+
+@socketio.on('cursor_move')
+def handle_cursor_move(data):
+    emit('cursor_move', {
+        'username': data['username'],
+        'x': data['x'],
+        'y': data['y'],
+    }, room=data['room'], include_self=False)

@@ -66,6 +66,23 @@ def get_example(label):
         search_label = "space"
 
     for data_dir in Config.DATA_DIRS:
+        # Check flat files first (e.g. A.jpg, 0.jpg, space.jpg)
+        for ext in ['.jpg', '.jpeg', '.png']:
+            target_file = os.path.join(data_dir, f"{search_label}{ext}")
+            if os.path.isfile(target_file):
+                return send_file(
+                    target_file,
+                    mimetype='image/jpeg' if ext != '.png' else 'image/png'
+                )
+            # Also try lowercase
+            target_file_lower = os.path.join(data_dir, f"{search_label.lower()}{ext}")
+            if os.path.isfile(target_file_lower):
+                return send_file(
+                    target_file_lower,
+                    mimetype='image/jpeg' if ext != '.png' else 'image/png'
+                )
+
+        # Fallback: check subdirectory structure (e.g. A/image.jpg)
         target_dir = os.path.join(data_dir, search_label)
         if not os.path.exists(target_dir):
             target_dir = os.path.join(data_dir, search_label.lower())

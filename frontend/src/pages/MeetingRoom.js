@@ -68,6 +68,7 @@ export default function MeetingRoom({ user }) {
   const holdStartRef = useRef(null);
   const lastLabelRef = useRef("");
   const newGameTimeoutRef = useRef(null);
+  const aslSignCallbackRef = useRef(null);
 
   // PHASE 5: Mobile detection
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
@@ -142,6 +143,13 @@ export default function MeetingRoom({ user }) {
           onTrackSubscribed: (sid, stream, name) => {
             if (cancelled) return;
             setPeers((prev) => ({ ...prev, [sid]: { stream, name } }));
+          },
+          onParticipantConnected: (sid, name) => {
+            if (cancelled) return;
+            setPeers((prev) => {
+              if (prev[sid]) return prev;
+              return { ...prev, [sid]: { stream: null, name } };
+            });
           },
           onTrackUnsubscribed: (sid) => {
             if (cancelled) return;
@@ -289,6 +297,12 @@ export default function MeetingRoom({ user }) {
           }
         }
       }
+
+      // PHASE 6: Notify whiteboard sticky note (ASL mode)
+      if (aslSignCallbackRef.current) {
+        aslSignCallbackRef.current(label);
+      }
+
       holdStartRef.current = null;
       lastLabelRef.current = "";
       setHoldProgress(0);
@@ -578,7 +592,9 @@ export default function MeetingRoom({ user }) {
             >
               <Whiteboard
                 room={roomId}
+                username={user.fullname}
                 onClose={() => setShowWhiteboard(false)}
+                aslSignCallbackRef={aslSignCallbackRef}
               />
             </div>
           )}

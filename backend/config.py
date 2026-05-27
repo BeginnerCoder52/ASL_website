@@ -10,6 +10,7 @@ class Config:
     TASK_PATH = os.path.join(OUTPUT_DIR, "hand_landmarker.task")
 
     DATA_DIRS = [
+        os.path.join(PROJECT_ROOT, "AI", "data", "ASL_example"),
         os.path.join(BASE_DIR, "data", "DATASET"),
     ]
 
