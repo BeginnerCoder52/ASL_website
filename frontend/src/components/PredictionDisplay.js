@@ -10,7 +10,7 @@ export default function PredictionDisplay({
 }) {
   return (
     <div className="prediction-panel">
-      {/* 1. Hiển thị các ô chữ cái */}
+      {/* 1. Character boxes */}
       <div
         className="phrase-container"
         style={{
@@ -37,7 +37,7 @@ export default function PredictionDisplay({
         })}
       </div>
 
-      {/* 2. Khu vực trạng thái & Ảnh hướng dẫn */}
+      {/* 2. Status area & Guide image */}
       <div className="status-box">
         {isCompleted ? (
           <div
@@ -54,7 +54,7 @@ export default function PredictionDisplay({
               justifyContent: "center",
             }}
           >
-            {/* ẢNH HƯỚNG DẪN TỪ DATASET */}
+            {/* GUIDE IMAGE FROM DATASET */}
             <div className="example-guide" style={{ textAlign: "center" }}>
               <div
                 style={{ fontSize: "14px", color: "#aaa", marginBottom: "5px" }}
@@ -66,12 +66,12 @@ export default function PredictionDisplay({
                   src={exampleUrl}
                   alt="Hand Sign Guide"
                   style={{
-                    height: "140px", // Tăng kích thước ảnh để nhìn rõ hơn
+                    height: "140px", // Increase image size for better visibility
                     width: "auto",
                     borderRadius: "8px",
                     border: "2px solid #555",
                     objectFit: "contain",
-                    backgroundColor: "#fff", // Nền trắng để ảnh trong suốt dễ nhìn
+                    backgroundColor: "#fff", // White background for transparent images
                   }}
                 />
               ) : (
@@ -93,7 +93,7 @@ export default function PredictionDisplay({
               )}
             </div>
 
-            {/* Thông tin Text */}
+            {/* Text Info */}
             <div className="info-text" style={{ textAlign: "left" }}>
               <div>
                 Target:{" "}

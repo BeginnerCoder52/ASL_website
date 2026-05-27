@@ -9,7 +9,7 @@ export async function getLiveKitToken(roomName, identity) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ room: roomName, identity }),
   });
-  if (!res.ok) throw new Error('Khong the lay LiveKit token');
+  if (!res.ok) throw new Error('Could not get LiveKit token');
   return res.json();
 }
 
@@ -29,7 +29,7 @@ export async function connectToRoom(roomName, identity, callbacks) {
     if (track.kind === 'video') {
       const stream = new MediaStream([track.mediaStreamTrack]);
       const sid = participant.sid;
-      const displayName = participant.name || participant.identity || 'Hoc vien';
+      const displayName = participant.name || participant.identity || 'Student';
       callbacks.onTrackSubscribed?.(sid, stream, displayName);
     }
   });

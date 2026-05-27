@@ -52,7 +52,7 @@ export default function CameraFeed({ onResult }) {
 
       {!cameraReady && (
         <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center text-white bg-gray-900 z-10">
-          Dang khoi dong camera...
+          Starting camera...
         </div>
       )}
     </div>

@@ -36,7 +36,7 @@ export default function MeetingRoom({ user }) {
 
   const [isAslOn, setIsAslOn] = useState(true);
   const [isCamOn, setIsCamOn] = useState(true);
-  const [isMicOn, setIsMicOn] = useState(false); // State quản lý Mic
+  const [isMicOn, setIsMicOn] = useState(false); // Mic state
   const [isShowSubtitle, setIsShowSubtitle] = useState(true);
   const [showWhiteboard, setShowWhiteboard] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -78,7 +78,7 @@ export default function MeetingRoom({ user }) {
     return () => window.removeEventListener("resize", handleResize);
   }, []);
 
-  // Quét thiết bị Camera
+  // Enumerate camera devices
   useEffect(() => {
     const getCameras = async () => {
       try {
@@ -91,9 +91,9 @@ export default function MeetingRoom({ user }) {
         if (videoDevices.length > 0) {
           setSelectedCamera(videoDevices[0].deviceId);
         }
-        tempStream.getTracks().forEach((t) => t.stop()); // Dừng stream ngay sau khi enumerate
+        tempStream.getTracks().forEach((t) => t.stop()); // Stop stream immediately after enumerate
       } catch (err) {
-        console.error("Lỗi khi tìm thiết bị Camera: ", err);
+        console.error("Error finding camera devices: ", err);
       }
     };
     getCameras();
@@ -209,7 +209,10 @@ export default function MeetingRoom({ user }) {
       alert(data.message);
       window.location.href = "/home";
     });
-    socket.on("timer_started", (data) => setTimerEndTime(data.endTime));
+    socket.on("timer_started", (data) => {
+      setTimerEndTime(data.endTime);
+      setTimeLeft(data.endTime - Date.now());
+    });
     socket.on("timer_stopped", () => {
       setTimerEndTime(null);
       setTimeLeft(null);
@@ -394,10 +397,10 @@ export default function MeetingRoom({ user }) {
         parseInt(timerInput.seconds || 0)) *
       1000;
     if (durationMs > 0) {
-      socket.emit("start_timer", {
-        room: roomId,
-        endTime: Date.now() + durationMs,
-      });
+      const endTime = Date.now() + durationMs;
+      socket.emit("start_timer", { room: roomId, endTime });
+      setTimerEndTime(endTime);
+      setTimeLeft(durationMs);
       setShowTimerConfig(false);
     }
   };
@@ -494,7 +497,7 @@ export default function MeetingRoom({ user }) {
         </div>
       )}
 
-      {/* KHU VỰC CHÍNH */}
+      {/* MAIN AREA */}
       <div
         style={{
           flex: 1,
@@ -636,7 +639,7 @@ export default function MeetingRoom({ user }) {
                   justifyContent: "space-between",
                 }}
               >
-                <h3 style={{ margin: 0, color: "white" }}>Trò chuyện</h3>
+                <h3 style={{ margin: 0, color: "white" }}>Chat</h3>
                 <button
                   onClick={() => setShowChat(false)}
                   style={{
@@ -678,7 +681,7 @@ export default function MeetingRoom({ user }) {
                           textAlign: isMe ? "right" : "left",
                         }}
                       >
-                        {isMe ? "Bạn" : msg.sender} • {msg.time}
+                        {isMe ? "You" : msg.sender} • {msg.time}
                       </div>
                       <div
                         style={{
@@ -711,7 +714,7 @@ export default function MeetingRoom({ user }) {
                   type="text"
                   value={chatInput}
                   onChange={(e) => setChatInput(e.target.value)}
-                  placeholder="Nhập tin nhắn..."
+                  placeholder="Type a message..."
                   style={{
                     flex: 1,
                     padding: "10px 15px",
@@ -852,7 +855,7 @@ export default function MeetingRoom({ user }) {
                     borderBottom: "1px solid #334155",
                   }}
                 >
-                  Chọn Camera
+                  Select Camera
                 </div>
                 {cameras.map((cam, idx) => (
                   <button
@@ -943,7 +946,7 @@ export default function MeetingRoom({ user }) {
               fontSize: isMobile ? "12px" : "inherit",
             }}
           >
-            {isMobile ? "☎" : "☎ Rời khỏi"}
+            {isMobile ? "☎" : "☎ Leave"}
           </button>
         </div>
       </div>
@@ -979,7 +982,7 @@ export default function MeetingRoom({ user }) {
             }}
           >
             <h3 style={{ color: "#00ffea", marginTop: 0 }}>
-              Cài đặt thời gian
+              Set Timer
             </h3>
             <div
               style={{
@@ -1006,7 +1009,7 @@ export default function MeetingRoom({ user }) {
                   borderRadius: "4px",
                 }}
               />{" "}
-              Phút
+              min
               <input
                 type="number"
                 min="0"
@@ -1024,7 +1027,7 @@ export default function MeetingRoom({ user }) {
                   borderRadius: "4px",
                 }}
               />{" "}
-              Giây
+              sec
             </div>
             <div
               style={{ display: "flex", gap: "10px", justifyContent: "center" }}
@@ -1033,13 +1036,13 @@ export default function MeetingRoom({ user }) {
                 onClick={startTimer}
                 style={modalBtnStyle("#00ffea", "#000")}
               >
-                Bắt đầu
+                Start
               </button>
               <button
                 onClick={() => setShowTimerConfig(false)}
                 style={modalBtnStyle("transparent", "#fff")}
               >
-                Hủy
+                Cancel
               </button>
             </div>
           </div>
@@ -1075,7 +1078,7 @@ export default function MeetingRoom({ user }) {
               textAlign: "center",
             }}
           >
-            <h2>Rời khỏi cuộc họp?</h2>
+            <h2>Leave meeting?</h2>
             <div
               style={{
                 display: "flex",
@@ -1088,14 +1091,14 @@ export default function MeetingRoom({ user }) {
                 onClick={handleLeaveOnly}
                 style={modalBtnStyle("#334155", "#fff")}
               >
-                Chỉ rời cuộc họp
+                Leave only
               </button>
               {user.isTeacher && (
                 <button
                   onClick={handleEndMeeting}
                   style={modalBtnStyle("#ef4444", "#fff")}
                 >
-                  Kết thúc cuộc họp cho tất cả
+                  End meeting for all
                 </button>
               )}
               <button
@@ -1105,7 +1108,7 @@ export default function MeetingRoom({ user }) {
                   border: "1px solid #64748b",
                 }}
               >
-                Hủy
+                Cancel
               </button>
             </div>
           </div>

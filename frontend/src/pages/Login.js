@@ -28,11 +28,11 @@ export default function Login({ onLogin }) {
       navigate("/home");
     } catch (err) {
       if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
-        setError("Sai tên đăng nhập hoặc mật khẩu!");
+        setError("Incorrect username or password!");
       } else if (err.code === "auth/invalid-email") {
-        setError("Tên đăng nhập không hợp lệ!");
+        setError("Invalid username!");
       } else {
-        setError("Đăng nhập thất bại: " + err.message);
+        setError("Login failed: " + err.message);
       }
     } finally {
       setLoading(false);
@@ -43,13 +43,13 @@ export default function Login({ onLogin }) {
     <div className="auth-container">
       <div className="auth-box">
         <h2 style={{ color: "#00ffea", marginBottom: "20px" }}>EDUGLYPH</h2>
-        <h3>Đăng nhập</h3>
+        <h3>Sign In</h3>
         {error && <p style={{ color: "#ff4d4d", fontSize: "14px" }}>{error}</p>}
         <form onSubmit={handleLogin}>
           <input
             className="auth-input"
             type="text"
-            placeholder="Tên đăng nhập"
+            placeholder="Username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -57,19 +57,19 @@ export default function Login({ onLogin }) {
           <input
             className="auth-input"
             type="password"
-            placeholder="Mật khẩu"
+            placeholder="Password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
           <button className="auth-btn" type="submit" disabled={loading}>
-            {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
+            {loading ? "Signing in..." : "Sign In"}
           </button>
         </form>
         <p style={{ marginTop: "15px", color: "#ccc" }}>
-          Chưa có tài khoản?{" "}
+          Don't have an account?{" "}
           <Link to="/register" style={{ color: "#00ffea" }}>
-            Đăng ký ngay
+            Register now
           </Link>
         </p>
       </div>

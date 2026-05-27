@@ -53,7 +53,7 @@ export default function App() {
         color: "#00ffea",
         fontSize: "1.2rem",
       }}>
-        Đang tải...
+        Loading...
       </div>
     );
   }
@@ -72,23 +72,23 @@ export default function App() {
         textAlign: "center",
       }}>
         <div style={{ fontSize: "3rem", marginBottom: "20px" }}>⚠️</div>
-        <h2 style={{ color: "#fff", marginBottom: "10px" }}>Lỗi kết nối Firebase</h2>
+        <h2 style={{ color: "#fff", marginBottom: "10px" }}>Firebase Connection Error</h2>
         <p style={{ color: "#94a3b8", maxWidth: "440px", lineHeight: "1.6" }}>
-          Kiểm tra 3 nguyên nhân sau:
+          Please check these 3 common causes:
         </p>
         <ol style={{ color: "#cbd5e1", maxWidth: "440px", textAlign: "left", lineHeight: "2" }}>
           <li>
-            <b>Vercel Dashboard:</b> Vào Project Settings → Environment Variables → <span style={{ color: "#fbbf24" }}>XÓA</span> tất cả <code>REACT_APP_FIREBASE_*</code> nếu có (để file <code>.env</code> được dùng).
+            <b>Vercel Dashboard:</b> Go to Project Settings → Environment Variables → <span style={{ color: "#fbbf24" }}>DELETE</span> any <code>REACT_APP_FIREBASE_*</code> keys if present (so <code>.env</code> file is used).
           </li>
           <li>
-            <b>Firebase Console:</b> Vào Authentication → "Get Started" → bật <b>Email/Password</b> sign-in.
+            <b>Firebase Console:</b> Go to Authentication → "Get Started" → enable <b>Email/Password</b> sign-in method.
           </li>
           <li>
-            <b>API Key:</b> Google Cloud Console → APIs & Services → Credentials → kiểm tra key <code>AIzaSyDE...</code> không bị giới hạn domain.
+            <b>API Key:</b> Google Cloud Console → APIs & Services → Credentials → check that key <code>AIzaSyDE...</code> has no domain restrictions.
           </li>
         </ol>
         <p style={{ color: "#64748b", fontSize: "12px", marginTop: "20px" }}>
-          Mở F12 → Console để xem log chi tiết.
+          Press F12 → Console to view detailed logs.
         </p>
       </div>
     );

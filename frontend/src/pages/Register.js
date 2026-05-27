@@ -21,11 +21,11 @@ export default function Register() {
     setMessage({ text: "", type: "" });
 
     if (formData.password !== formData.confirm) {
-      return setMessage({ text: "Mật khẩu nhập lại không khớp!", type: "error" });
+      return setMessage({ text: "Passwords do not match!", type: "error" });
     }
 
     if (formData.password.length < 6) {
-      return setMessage({ text: "Mật khẩu phải có ít nhất 6 ký tự!", type: "error" });
+      return setMessage({ text: "Password must be at least 6 characters!", type: "error" });
     }
 
     setLoading(true);
@@ -44,15 +44,15 @@ export default function Register() {
         email,
       });
 
-      setMessage({ text: "Đăng ký thành công! Đang chuyển về đăng nhập...", type: "success" });
+      setMessage({ text: "Registration successful! Redirecting to login...", type: "success" });
       setTimeout(() => navigate("/"), 3000);
     } catch (err) {
       if (err.code === "auth/email-already-in-use") {
-        setMessage({ text: "Tên đăng nhập này đã tồn tại!", type: "error" });
+        setMessage({ text: "This username is already taken!", type: "error" });
       } else if (err.code === "auth/weak-password") {
-        setMessage({ text: "Mật khẩu quá yếu! Phải có ít nhất 6 ký tự.", type: "error" });
+        setMessage({ text: "Password too weak! Must be at least 6 characters.", type: "error" });
       } else {
-        setMessage({ text: "Đăng ký thất bại: " + err.message, type: "error" });
+        setMessage({ text: "Registration failed: " + err.message, type: "error" });
       }
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export default function Register() {
   return (
     <div className="auth-container">
       <div className="auth-box">
-        <h2 style={{ color: "#00ffea" }}>ĐĂNG KÝ</h2>
+        <h2 style={{ color: "#00ffea" }}>REGISTER</h2>
         {message.text && (
           <p style={{ color: message.type === "error" ? "#ff4d4d" : "#00ffea" }}>
             {message.text}
@@ -72,14 +72,14 @@ export default function Register() {
           <input
             className="auth-input"
             type="text"
-            placeholder="Tên đăng nhập"
+            placeholder="Username"
             required
             onChange={(e) => setFormData({ ...formData, username: e.target.value })}
           />
           <input
             className="auth-input"
             type="text"
-            placeholder="Họ và tên"
+            placeholder="Full name"
             required
             onChange={(e) => setFormData({ ...formData, fullname: e.target.value })}
           />
@@ -92,24 +92,24 @@ export default function Register() {
           <input
             className="auth-input"
             type="password"
-            placeholder="Mật khẩu (ít nhất 6 ký tự)"
+            placeholder="Password (min 6 characters)"
             required
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
           />
           <input
             className="auth-input"
             type="password"
-            placeholder="Nhập lại mật khẩu"
+            placeholder="Confirm password"
             required
             onChange={(e) => setFormData({ ...formData, confirm: e.target.value })}
           />
           <button className="auth-btn" type="submit" disabled={loading}>
-            {loading ? "Đang đăng ký..." : "Đăng Ký"}
+            {loading ? "Registering..." : "Register"}
           </button>
         </form>
         <p style={{ marginTop: "15px" }}>
           <Link to="/" style={{ color: "#aaa" }}>
-            ← Quay lại đăng nhập
+            ← Back to login
           </Link>
         </p>
       </div>

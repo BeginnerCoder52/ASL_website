@@ -39,7 +39,7 @@ def get_livekit_token():
     identity = data.get('identity', 'anonymous')
 
     if not Config.LIVEKIT_API_KEY or not Config.LIVEKIT_API_SECRET:
-        return jsonify({'error': 'LiveKit chua duoc cau hinh'}), 500
+        return jsonify({'error': 'LiveKit not configured'}), 500
 
     payload = {
         "iss": Config.LIVEKIT_API_KEY,

@@ -25,7 +25,7 @@ def on_join(data):
     emit('user_joined', {
         'username': username,
         'peerId': peer_id,
-        'message': f'{username} đã tham gia lớp.'
+        'message': f'{username} joined the class.'
     }, room=room, include_self=False)
 
 
@@ -41,7 +41,7 @@ def on_leave(data):
     emit('user_left', {
         'username': username,
         'peerId': peer_id,
-        'message': f'{username} đã rời khỏi phòng họp.'
+        'message': f'{username} left the meeting.'
     }, room=room, include_self=False)
 
 
@@ -53,7 +53,7 @@ def handle_chat(data):
 @socketio.on('end_meeting')
 def handle_end_meeting(data):
     emit('meeting_ended', {
-        'message': 'Giáo viên đã kết thúc lớp học.'
+        'message': 'The teacher has ended the class.'
     }, room=data['room'])
 
 

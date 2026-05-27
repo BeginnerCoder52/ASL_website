@@ -132,7 +132,7 @@ export default function VideoTile({
           fontSize: "14px",
         }}
       >
-        {name} {isLocal ? "(Ban)" : ""} {isLocal && !isMicOn && " TAT MIC"}
+        {name} {isLocal ? "(You)" : ""} {isLocal && !isMicOn && " MIC OFF"}
       </div>
 
       {isLocal ? (

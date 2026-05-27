@@ -453,7 +453,7 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
                   }}
                   placeholder={
                     sticky.mode === "asl"
-                      ? "Sign ASL to add text..."
+                      ? "Sign ASL to type..."
                       : "Type here..."
                   }
                   autoFocus
@@ -559,9 +559,9 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
 
         {/* Pen Size */}
         <div style={{ display: "flex", gap: "8px", borderRight: "2px solid #334155", paddingRight: "20px" }}>
-          <button onClick={() => { setLineWidth(4); setIsEraser(false); }} style={getBtnStyle(lineWidth === 4 && !isEraser)}>Nhỏ</button>
-          <button onClick={() => { setLineWidth(10); setIsEraser(false); }} style={getBtnStyle(lineWidth === 10 && !isEraser)}>Vừa</button>
-          <button onClick={() => { setLineWidth(20); setIsEraser(false); }} style={getBtnStyle(lineWidth === 20 && !isEraser)}>To</button>
+          <button onClick={() => { setLineWidth(4); setIsEraser(false); }} style={getBtnStyle(lineWidth === 4 && !isEraser)}>Small</button>
+          <button onClick={() => { setLineWidth(10); setIsEraser(false); }} style={getBtnStyle(lineWidth === 10 && !isEraser)}>Medium</button>
+          <button onClick={() => { setLineWidth(20); setIsEraser(false); }} style={getBtnStyle(lineWidth === 20 && !isEraser)}>Large</button>
         </div>
 
         {/* Sticky Notes */}
@@ -573,7 +573,7 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
             }}
             style={getBtnStyle(stickyMode && activeStickyMode === "keyboard")}
           >
-            📝 Ghi chú
+            📝 Note
           </button>
           <button
             onClick={() => {
@@ -588,15 +588,15 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
 
         {/* Actions */}
         <div style={{ display: "flex", gap: "8px" }}>
-          <button onClick={() => setIsEraser(true)} style={getBtnStyle(isEraser)}>Tẩy</button>
-          <button onClick={clearBoard} style={getBtnStyle(false)}>Xóa hết</button>
-          <button onClick={saveBoard} style={getBtnStyle(false)}>💾 Lưu</button>
+          <button onClick={() => setIsEraser(true)} style={getBtnStyle(isEraser)}>Eraser</button>
+          <button onClick={clearBoard} style={getBtnStyle(false)}>Clear All</button>
+          <button onClick={saveBoard} style={getBtnStyle(false)}>💾 Save</button>
           <button onClick={downloadPng} style={getBtnStyle(false)}>⬇ .PNG</button>
           <button
             onClick={onClose}
             style={{ ...getBtnStyle(false), backgroundColor: "#ef4444", color: "white", marginLeft: "10px" }}
           >
-            Đóng
+            Close
           </button>
         </div>
       </div>

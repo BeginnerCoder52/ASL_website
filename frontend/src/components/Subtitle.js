@@ -25,13 +25,12 @@ const Subtitle = ({ isListening, language = "en-US" }) => {
     };
   }, [isListening, language]);
 
-  // Xử lý khi trình duyệt không hỗ trợ Web Speech API (như Firefox/Safari bản cũ)
   if (!browserSupportsSpeechRecognition) {
     return (
       <div style={containerStyle}>
         <p style={{ color: "#ff6b6b", fontSize: "18px", margin: 0 }}>
-          Trình duyệt của bạn không hỗ trợ nhận diện giọng nói. Vui lòng sử dụng
-          Google Chrome để trải nghiệm tính năng này.
+          Your browser does not support speech recognition. Please use
+          Google Chrome for this feature.
         </p>
       </div>
     );
@@ -61,7 +60,7 @@ const Subtitle = ({ isListening, language = "en-US" }) => {
           {listening ? "● Mic is ON" : "■ Mic is OFF"}
         </span>
 
-        {/* Nút thủ công trong trường hợp trình duyệt chặn tự động chạy */}
+        {/* Manual start button in case browser blocks auto-start */}
         {!listening && (
           <button
             onClick={() =>
@@ -82,7 +81,7 @@ const Subtitle = ({ isListening, language = "en-US" }) => {
         </button>
       </div>
 
-      {/* Nội dung Phụ đề */}
+      {/* Subtitle Content */}
       <p
         style={{
           color: "#fff",
@@ -109,7 +108,7 @@ const containerStyle = {
   bottom: "30px",
   left: "50%",
   transform: "translateX(-50%)",
-  backgroundColor: "rgba(15, 23, 42, 0.9)", // Nền tối xanh navy
+  backgroundColor: "rgba(15, 23, 42, 0.9)", // Dark navy background
   border: "1px solid #334155",
   padding: "15px 30px",
   borderRadius: "16px",

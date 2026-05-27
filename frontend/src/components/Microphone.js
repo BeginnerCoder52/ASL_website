@@ -16,7 +16,7 @@ export default function Microphone({ onSpeechResult, onMicToggle }) {
     onSpeechResult(lastWords.join(" "));
   }, [transcript, onSpeechResult]);
 
-  // Dừng speech recognition khi component unmount
+  // Stop speech recognition when component unmounts
   useEffect(() => {
     return () => {
       if (listening) SpeechRecognition.stopListening();
@@ -38,7 +38,7 @@ export default function Microphone({ onSpeechResult, onMicToggle }) {
   if (!browserSupportsSpeechRecognition) {
     return (
       <button
-        onClick={() => alert("Trình duyệt không hỗ trợ!")}
+        onClick={() => alert("Browser not supported!")}
         style={{
           background: "#ef4444",
           color: "white",

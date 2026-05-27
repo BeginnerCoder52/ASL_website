@@ -42,14 +42,14 @@ export default function Home({ user }) {
         width: isMobile ? '100%' : 'auto',
       }}>
         <h1 style={{ fontSize: isMobile ? '2rem' : '3rem', marginBottom: '10px', color: '#00ffea' }}>EduGlyph</h1>
-        <h2 style={{ fontSize: isMobile ? '1.3rem' : '2rem', marginBottom: '10px' }}>Xin chào, {user.fullname || user.name}!</h2>
+        <h2 style={{ fontSize: isMobile ? '1.3rem' : '2rem', marginBottom: '10px' }}>Welcome, {user.fullname || user.name}!</h2>
         <p style={{
           color: '#94a3b8',
           fontSize: isMobile ? '1rem' : '1.2rem',
           marginBottom: '30px',
           lineHeight: '1.6',
         }}>
-          Nền tảng hội nghị trực tuyến kết hợp AI nhận diện ngôn ngữ ký hiệu (ASL) dành cho tất cả mọi người.
+          AI-powered video conferencing platform with real-time American Sign Language (ASL) recognition for everyone.
         </p>
 
         <div style={{
@@ -68,7 +68,7 @@ export default function Home({ user }) {
             transition: '0.2s', width: isMobile ? '100%' : 'auto',
             justifyContent: 'center',
           }}>
-            <span style={{ fontSize: '1.5rem' }}>+</span> Tạo phòng mới
+            <span style={{ fontSize: '1.5rem' }}>+</span> New Room
           </button>
           
           <div style={{
@@ -79,7 +79,7 @@ export default function Home({ user }) {
             boxSizing: 'border-box',
           }}>
             <input
-              placeholder="Nhập mã phòng..."
+              placeholder="Enter room code..."
               value={roomCode}
               onChange={(e) => setRoomCode(e.target.value)}
               style={{
@@ -97,7 +97,7 @@ export default function Home({ user }) {
               fontSize: isMobile ? '0.9rem' : '1.1rem',
               whiteSpace: 'nowrap',
             }}>
-              Tham gia
+              Join
             </button>
           </div>
         </div>
@@ -114,7 +114,7 @@ export default function Home({ user }) {
           }}>
              <div style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: '5rem', marginBottom: '20px' }}>🤟🌍</div>
-                <h3 style={{ color: '#00ffea', fontWeight: 'normal' }}>Giao tiếp không giới hạn</h3>
+                <h3 style={{ color: '#00ffea', fontWeight: 'normal' }}>Connect Without Limits</h3>
              </div>
           </div>
         </div>
