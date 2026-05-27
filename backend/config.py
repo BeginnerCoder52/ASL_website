@@ -46,7 +46,8 @@ class Config:
         "Palm": (255, 255, 255)
     }
 
-    # LiveKit config
-    LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "")
-    LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "")
+    # LiveKit config - Lấy từ biến môi trường để deploy linh hoạt
+    # Có thể set LIVEKIT_URL qua biến môi trường trên Render, HF Spaces, Koyeb, Fly.io
+    LIVEKIT_API_KEY = os.environ.get("LIVEKIT_API_KEY", "APIbWPhatrsig52")
+    LIVEKIT_API_SECRET = os.environ.get("LIVEKIT_API_SECRET", "PcpkoUeZP95fnlkdlIPYKLoc2tuycjjPxq35ZP9UUvJ")
     LIVEKIT_URL = os.environ.get("LIVEKIT_URL", "wss://asl-website-9ewo4y8s.livekit.cloud")

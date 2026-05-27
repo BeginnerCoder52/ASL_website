@@ -57,6 +57,12 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
 
     socket.on("sticky_add", (data) => {
       setStickies((prev) => [...prev, data.sticky]);
+      setEditingStickyId((prev) => {
+        if (typeof prev === "string" && prev.startsWith("temp_")) {
+          return data.sticky.id;
+        }
+        return prev;
+      });
     });
 
     socket.on("sticky_update", (data) => {
@@ -250,17 +256,17 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
   };
 
   const addSticky = (x, y) => {
-    const newSticky = {
-      id: "temp_" + Date.now(),
+    const tempId = "temp_" + Date.now();
+    setEditingStickyId(tempId);
+    socket.emit("sticky_add", {
       x,
       y,
       text: "",
       color: STICKY_COLORS[Math.floor(Math.random() * STICKY_COLORS.length)],
       mode: activeStickyMode,
       username: username || "User",
-    };
-    socket.emit("sticky_add", { ...newSticky, room });
-    setEditingStickyId(newSticky.id);
+      room,
+    });
   };
 
   const handleStickyTextChange = (id, text) => {
@@ -277,6 +283,7 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
   const removeSticky = (e, id) => {
     e.stopPropagation();
     socket.emit("sticky_remove", { room, id });
+    setStickies((prev) => prev.filter((s) => s.id !== id));
     if (editingStickyId === id) setEditingStickyId(null);
   };
 
@@ -583,7 +590,8 @@ export default function Whiteboard({ room, username, onClose, aslSignCallbackRef
         <div style={{ display: "flex", gap: "8px" }}>
           <button onClick={() => setIsEraser(true)} style={getBtnStyle(isEraser)}>Tẩy</button>
           <button onClick={clearBoard} style={getBtnStyle(false)}>Xóa hết</button>
-          <button onClick={downloadPng} style={getBtnStyle(false)}>💾 .PNG</button>
+          <button onClick={saveBoard} style={getBtnStyle(false)}>💾 Lưu</button>
+          <button onClick={downloadPng} style={getBtnStyle(false)}>⬇ .PNG</button>
           <button
             onClick={onClose}
             style={{ ...getBtnStyle(false), backgroundColor: "#ef4444", color: "white", marginLeft: "10px" }}

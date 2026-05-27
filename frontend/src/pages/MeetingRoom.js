@@ -178,6 +178,14 @@ export default function MeetingRoom({ user }) {
         roomRef.current = room;
         mySidRef.current = room.localParticipant.sid;
 
+        if (localStreamRef.current) {
+          try {
+            await publishLocalVideo(localStreamRef.current);
+          } catch (err) {
+            console.error("Loi publish local video sau connect:", err);
+          }
+        }
+
         socket.emit("join_room", {
           room: roomId,
           username: user.fullname,
@@ -532,9 +540,8 @@ export default function MeetingRoom({ user }) {
               flex: showWhiteboard ? 1.5 : 1,
               display: "grid",
               gridTemplateColumns: `repeat(${gridCols}, 1fr)`,
-              justifyContent: "center",
-              alignItems: "center",
-              alignContent: "center",
+              justifyItems: "center",
+              alignItems: "stretch",
               gap: isMobile ? "8px" : "20px",
               overflowY: "auto",
               padding: isMobile ? "8px" : "20px",

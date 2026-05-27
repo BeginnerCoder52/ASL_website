@@ -114,6 +114,9 @@ export default function VideoTile({
         borderRadius: "12px",
         overflow: "hidden",
         border: isLocal ? "3px solid #00ffea" : "2px solid #334155",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
       }}
     >
       <div
@@ -144,6 +147,8 @@ export default function VideoTile({
             videoConstraints={isCamOn ? {
               deviceId: deviceId ? { exact: deviceId } : undefined,
               facingMode: "user",
+              width: 640,
+              height: 480,
             } : false}
           />
 
@@ -155,7 +160,6 @@ export default function VideoTile({
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
                 transform: "scaleX(-1)",
               }}
             />
@@ -170,7 +174,6 @@ export default function VideoTile({
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
                 transform: "scaleX(-1)",
               }}
             />
@@ -198,7 +201,6 @@ export default function VideoTile({
           style={{
             width: "100%",
             height: "100%",
-            objectFit: "cover",
             transform: "scaleX(-1)",
           }}
         />

@@ -542,17 +542,103 @@ File `.gitignore` có dòng `.env` (không prefix path) → git bỏ qua `fronte
 | Mục | Trạng thái | Ghi chú |
 |-----|-----------|---------|
 | Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |
-| Nâng cấp tính năng | ⏳ Phase 6 | Sticky notes, collaborative cursors, save whiteboard |
 
-### 12.7. Câu lệnh chạy
+---
 
-```bash
-cd ~/ASL_website/frontend
-npm start
+## 13. CẬP NHẬT PHASE 6 — Ngày 28/05/2026 — Nâng cấp tính năng + Fix LiveKit + ASL_example
+
+### 13.1. Tổng quan
+
+Phase 6 bao gồm: sticky notes (2 modes: keyboard + ASL), collaborative cursors, save whiteboard .PNG, fix LiveKit multi-user, và tạo ASL_example images cho game mode.
+
+### 13.2. Các file đã sửa/tạo
+
+| File | Thay đổi |
+|------|---------|
+| `AI/data/ASL_example/` | **MỚI**: 36 file `.jpg` (0-9, A-Z) mỗi file 1 ảnh, đặt tên theo label |
+| `backend/config.py` | Thêm `AI/data/ASL_example` vào đầu `DATA_DIRS` |
+| `backend/routes.py` | Mở rộng `/api/example/<label>`: check flat file trước, fallback subdirectory |
+| `backend/services/room_manager.py` | Thêm `room_stickies` dict + methods: `get_stickies`, `add_sticky`, `update_sticky`, `remove_sticky` |
+| `backend/socket_events.py` | Thêm events: `sticky_add`, `sticky_update`, `sticky_remove`, `request_stickies`, `load_stickies`, `cursor_move` |
+| `frontend/.env` | Giữ nguyên, `REACT_APP_LIVEKIT_URL` đã có sẵn |
+| `frontend/src/services/livekitService.js` | **Fix LiveKit**: dùng `process.env.REACT_APP_LIVEKIT_URL` (ưu tiên) fallback backend URL; thêm `RoomEvent.ParticipantConnected` listener |
+| `frontend/src/pages/MeetingRoom.js` | Thêm `aslSignCallbackRef` + gọi khi sign confirmed; truyền `username` + `aslSignCallbackRef` xuống Whiteboard |
+| `frontend/src/components/Whiteboard.js` | **Viết lại**: sticky notes (📝 keyboard + 🤟 ASL), collaborative cursors (chấm + tên), nút 💾 .PNG |
+
+### 13.3. Chi tiết tính năng mới
+
+#### 13.3.1. Sticky Notes (5.3)
+
+- **Keyboard mode**: Click "📝 Ghi chú" → click canvas → tạo sticky note → gõ text
+- **ASL mode**: Click "🤟 ASL" → click canvas → tạo sticky note → ra dấu ASL → text tự động append
+- Sticky note có màu ngẫu nhiên, hiện tên người tạo, có thể kéo thả, xoá
+- Đồng bộ real-time qua Socket.IO cho tất cả users trong phòng
+
+#### 13.3.2. Collaborative Cursors (5.4)
+
+- Mouse move → emit `cursor_move` → server broadcast → các user khác thấy chấm tròn + tên
+- Cursor tự động biến mất sau 3 giây inactive
+- Chạy trên container (không chỉ canvas), tracking mượt
+
+#### 13.3.3. Save Whiteboard .PNG (5.5)
+
+- Nút "💾 .PNG" trong toolbar → download canvas hiện tại thành file `whiteboard_<room>.png`
+
+#### 13.3.4. Fix LiveKit multi-user
+
+- **Vấn đề**: `REACT_APP_LIVEKIT_URL` trong `.env` không được đọc ở đâu cả. Frontend lấy URL từ backend token response. Nếu backend không có `LIVEKIT_URL` trong env, dùng default có thể sai → kết nối thất bại.
+- **Fix**: `livekitService.js` ưu tiên `process.env.REACT_APP_LIVEKIT_URL` (từ .env), fallback về backend URL
+- **Thêm**: `RoomEvent.ParticipantConnected` listener để user join room được phát hiện ngay cả khi chưa publish track
+
+#### 13.3.5. ASL_example images cho Game Mode
+
+- Tạo thư mục `AI/data/ASL_example/` với 36 ảnh `0.jpg` → `9.jpg`, `A.jpg` → `Z.jpg`
+- Backend `/api/example/<label>` ưu tiên serve từ thư mục mới
+- Game mode (`PredictionDisplay`) hiển thị ảnh hướng dẫn từ ASL_example
+
+### 13.4. Kiến trúc Sticky Notes + Cursors
+
+```
+Whiteboard (React)
+  ├── Canvas (vẽ tay)
+  ├── Sticky notes overlay (div absolute trên canvas)
+  │   ├── Mỗi note: id, x, y, text, color, mode, username
+  │   ├── Keyboard: textarea cho phép gõ
+  │   └── ASL: lắng nghe aslSignCallbackRef → append text
+  └── Cursor overlay (chấm tròn + tên)
+
+Socket.IO events:
+  sticky_add → broadcast → all users thêm note
+  sticky_update → broadcast → cập nhật vị trí/nội dung
+  sticky_remove → broadcast → xoá note
+  request_stickies → server → load_stickies (gửi danh sách về)
+  cursor_move → broadcast (trừ người gửi) → cập nhật cursor
+
+RoomManager (server):
+  room_stickies[room] = [sticky, ...]  (lưu trong RAM)
 ```
 
-Backend vẫn cần chạy cho Socket.IO + LiveKit token:
+### 13.5. Lưu ý
+
+- Sticky notes lưu trong RAM server (RoomManager singleton) — sẽ mất khi restart backend
+- Nếu muốn persistent, cần chuyển sang Firebase/Firestore
+- LiveKit URL trong `.env` (`REACT_APP_LIVEKIT_URL`) cần khớp với LiveKit Cloud project
+- API key LiveKit vẫn cần set trong backend environment variables
+
+### 13.6. Vấn đề tồn đọng
+
+| Mục | Trạng thái | Ghi chú |
+|-----|-----------|---------|
+| Deploy HF Spaces | ⏳ Phase 2 | Chưa deploy |
+
+### 13.7. Câu lệnh chạy
+
 ```bash
+# Frontend (terminal 1)
+cd ~/ASL_website/frontend
+npm start
+
+# Backend (terminal 2) — vẫn cần cho Socket.IO chat/whiteboard/timer + LiveKit token
 cd ~/ASL_website
 .venv/bin/python -m backend.app
 ```
