@@ -1,21 +1,41 @@
 import React, { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import "../App.css"; // Dùng chung CSS
+import { loginWithEmail } from "../services/auth";
+import { getUserProfile } from "../services/db";
+import { usernameToEmail } from "../services/usernameToEmail";
+import "../App.css";
 
 export default function Login({ onLogin }) {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-    const users = JSON.parse(localStorage.getItem("asl_users")) || {};
-    if (users[username] && users[username].password === password) {
-      onLogin(users[username]);
+    setError("");
+    setLoading(true);
+    try {
+      const email = usernameToEmail(username);
+      const user = await loginWithEmail(email, password);
+      const profile = await getUserProfile(user.uid);
+      if (profile) {
+        onLogin({ ...profile, uid: user.uid });
+      } else {
+        onLogin({ uid: user.uid, email: user.email, fullname: username, username });
+      }
       navigate("/home");
-    } else {
-      setError("Sai tài khoản hoặc mật khẩu! Vui lòng đăng ký nếu chưa có.");
+    } catch (err) {
+      if (err.code === "auth/user-not-found" || err.code === "auth/wrong-password" || err.code === "auth/invalid-credential") {
+        setError("Sai tên đăng nhập hoặc mật khẩu!");
+      } else if (err.code === "auth/invalid-email") {
+        setError("Tên đăng nhập không hợp lệ!");
+      } else {
+        setError("Đăng nhập thất bại: " + err.message);
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -29,7 +49,7 @@ export default function Login({ onLogin }) {
           <input
             className="auth-input"
             type="text"
-            placeholder="Tên tài khoản"
+            placeholder="Tên đăng nhập"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
@@ -42,8 +62,8 @@ export default function Login({ onLogin }) {
             onChange={(e) => setPassword(e.target.value)}
             required
           />
-          <button className="auth-btn" type="submit">
-            Đăng Nhập
+          <button className="auth-btn" type="submit" disabled={loading}>
+            {loading ? "Đang đăng nhập..." : "Đăng Nhập"}
           </button>
         </form>
         <p style={{ marginTop: "15px", color: "#ccc" }}>

@@ -10,3 +10,6 @@ simplejson
 gunicorn
 gevent
 gevent-websocket
+tensorflowjs==4.17.0
+firebase-admin==6.6.0
+pyjwt==2.10.1

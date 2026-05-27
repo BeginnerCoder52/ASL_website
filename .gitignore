@@ -17,6 +17,8 @@ __pycache__/
 .env
 .env.local
 .env.*.local
+# Cho phep frontend/.env duoc push (Firebase API keys la public-facing)
+!frontend/.env
 
 # Build output
 dist/

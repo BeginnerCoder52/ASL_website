@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import SpeechRecognition, {
   useSpeechRecognition,
 } from "react-speech-recognition";
@@ -7,9 +7,13 @@ export default function Microphone({ onSpeechResult, onMicToggle }) {
   const [isMicOn, setIsMicOn] = useState(false);
   const { transcript, browserSupportsSpeechRecognition, listening } =
     useSpeechRecognition();
+  const lastLengthRef = useRef(0);
 
   useEffect(() => {
-    if (transcript) onSpeechResult(transcript);
+    if (!transcript) return;
+    const words = transcript.split(/\s+/).filter(Boolean);
+    const lastWords = words.slice(-30);
+    onSpeechResult(lastWords.join(" "));
   }, [transcript, onSpeechResult]);
 
   // Dừng speech recognition khi component unmount
@@ -23,11 +27,11 @@ export default function Microphone({ onSpeechResult, onMicToggle }) {
     if (isMicOn) {
       SpeechRecognition.stopListening();
       setIsMicOn(false);
-      if (onMicToggle) onMicToggle(false); // Báo tắt mic
+      if (onMicToggle) onMicToggle(false);
     } else {
       SpeechRecognition.startListening({ continuous: true, language: "en-US" });
       setIsMicOn(true);
-      if (onMicToggle) onMicToggle(true); // Báo bật mic
+      if (onMicToggle) onMicToggle(true);
     }
   };
 

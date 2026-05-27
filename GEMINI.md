@@ -29,6 +29,17 @@ To achieve a scalable "Google Meet for ASL" environment, the system utilizes the
    - **Current State:** Using `Socket.IO` for signaling, real-time chat, whiteboard syncing, and subtitle broadcasting.
    - **Ideal Scale (The "Google Meet" approach):** Sending base64 video frames over HTTP/WebSockets to a Python backend is computationally heavy and causes high latency. To replicate Google Meet, the system should transition to **WebRTC**. WebRTC handles peer-to-peer (P2P) or client-to-server video/audio streaming with minimal latency.
 
+### 3. Kiến Trúc Luồng Hoạt Động (Cập nhật: Client-side AI)
+Dự án đã chuyển đổi từ kiến trúc Server-side AI (Socket.IO + Flask) sang **Client-side AI (Edge Computing)** để tối ưu khả năng mở rộng như Google Meet. Luồng hoạt động chuẩn như sau:
+
+1. **Video/Audio (Giao tiếp):** Được quản lý bởi `LiveKit Cloud` (Kiến trúc SFU). Video và Audio của người dùng được gửi lên máy chủ LiveKit và phân phối cho người khác.
+2. **AI Nhận diện Cử chỉ (ASL Pipeline):** Chạy ĐỘC LẬP trên trình duyệt của từng người dùng.
+   - **Trích xuất Đặc trưng:** React sử dụng `@mediapipe/tasks-vision` (WebAssembly) để lấy 63 tọa độ 3D của bàn tay trực tiếp từ Webcam ở local.
+   - **Suy luận (Inference):** Tọa độ được đưa vào mô hình MLP (đã ép kiểu sang `@tensorflow/tfjs`) để dự đoán ra văn bản (Text) bằng sức mạnh WebGL của máy khách.
+3. **Đồng bộ Subtitle:** Chuỗi văn bản dự đoán được gửi qua **LiveKit Data Channels** tới những người trong phòng. Backend Python hiện tại chỉ đóng vai trò hỗ trợ quản lý phòng/Xác thực (Token), không tham gia vào luồng xử lý Video hay AI.
+
+*Lưu ý cho Agent:* Khi code hoặc debug tính năng AI, KHÔNG sử dụng Python hay Socket.IO. Mọi logic nhận diện phải được thực thi ở tầng Frontend (React/JS).
+
 ## Web Service Infrastructure & Scaling Limitations
 
 ### Current Services:
@@ -100,3 +111,8 @@ To build and deploy this ASL Meeting platform with zero monthly costs while reso
    - **EU.org:** Offers completely free domains (e.g., `eduglyph.eu.org`), but the manual approval process can take months.
    - **Subdomains:** Stick to the high-quality free subdomains provided by **Vercel (`.vercel.app`)** or **Firebase (`.web.app`)**. They are professional enough for prototyping and production.
    - **Cheap Alternative:** Buy a `.xyz` or `.icu` domain for ~$1-$2/year on Namecheap and connect it to Vercel for free.
+
+## CONSTRAINTS:
+- DO NOT CHANGE THE CORE CODE
+- CLEAN COMMENT IN VIETNAMESE
+- USE COMPACT CONVERSATIONS IF IT TAKES TOO MUCH TOKENS.
